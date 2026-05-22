@@ -9,7 +9,7 @@ import {
 import { PubSub } from 'graphql-subscriptions';
 import type { Prisma, Product } from '@prisma/client';
 import { OrderStatus as PrismaOrderStatus } from '@prisma/client';
-import { createHmac, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { TableService } from '../table/table.service';
 import { InventoryService } from './inventory.service';
@@ -106,32 +106,17 @@ export class OrderService {
   }
 
   /**
-   * REST entrypoint for Telebirr notify URL; delegates to confirmPaymentCallback with HMAC-compatible payload.
+   * REST entrypoint for Telebirr H5 C2B notify URL.
    */
   async handleTelebirrWebhook(body: unknown): Promise<void> {
-    const notify = this.telebirrService.parseNotifyPayload(body);
-    const st = notify.tradeStatus.toUpperCase();
-    const success =
-      st === 'SUCCESS' || st === 'TRADE_SUCCESS' || st === 'COMPLETED';
-    const rawPayload = JSON.stringify({
-      nonce: randomUUID(),
-      timestamp: Date.now(),
-      requestId: 'telebirr-rest-webhook',
-      telebirr: notify,
-    });
-    const secret = process.env.TELEBIRR_APP_SECRET ?? '';
-    if (!secret) {
-      throw new Error('TELEBIRR_APP_SECRET is required for webhook processing');
-    }
-    const signature = createHmac('sha256', secret)
-      .update(rawPayload)
-      .digest('hex');
-    const result = await this.confirmPaymentCallback({
-      orderId: notify.outTradeNo,
-      providerTxnId: notify.tradeNo,
-      callbackStatus: success ? 'SUCCESS' : 'FAILED',
-      signature,
-      rawPayload,
+    const notify = this.telebirrService.parseAndVerifyNotifyPayload(body);
+    const result = await this.applyTelebirrProviderUpdate({
+      orderId: notify.merch_order_id,
+      providerTxnId: notify.payment_order_id,
+      providerStatus: notify.trade_status,
+      rawPayload: JSON.stringify(body),
+      receiptNonce: notify.merch_order_id,
+      source: 'telebirr_notify',
     });
     if (!result.ok) {
       throw new Error(result.error?.message ?? 'Payment callback failed');
@@ -690,7 +675,7 @@ export class OrderService {
           error: {
             code: 'TELEBIRR_NOT_CONFIGURED',
             message:
-              'Telebirr is not configured (set TELEBIRR_API_BASE, TELEBIRR_APP_ID, TELEBIRR_APP_KEY, TELEBIRR_SHORT_CODE, TELEBIRR_PUBLIC_KEY, TELEBIRR_NOTIFY_URL)',
+              'Telebirr is not configured (set TELEBIRR_BASE_URL, TELEBIRR_WEB_BASE_URL, TELEBIRR_FABRIC_APP_ID, TELEBIRR_APP_SECRET, TELEBIRR_MERCHANT_APP_ID, TELEBIRR_MERCHANT_CODE, TELEBIRR_PRIVATE_KEY, TELEBIRR_NOTIFY_URL)',
           },
         };
       }
@@ -936,6 +921,264 @@ export class OrderService {
           },
         };
       }
+      if (isUniqueConstraintError(error)) {
+        this.paymentMetricsService.markReplayRejected();
+        return {
+          ok: false,
+          error: {
+            code: 'PAYMENT_CALLBACK_REPLAYED',
+            message: 'Duplicated payment callback detected',
+          },
+        };
+      }
+      throw error;
+    }
+  }
+
+  async reconcileTelebirrOrder(orderId: string): Promise<OrderPayload> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+    if (!order) {
+      return {
+        ok: false,
+        error: { code: 'ORDER_NOT_FOUND', message: 'Order not found' },
+      };
+    }
+    if (!this.telebirrService.isConfigured()) {
+      return {
+        ok: false,
+        error: {
+          code: 'TELEBIRR_NOT_CONFIGURED',
+          message: 'Telebirr is not configured',
+        },
+      };
+    }
+
+    try {
+      const result = await this.telebirrService.queryOrder(orderId);
+      const biz = result.biz_content;
+      const providerTxnId =
+        biz?.payment_order_id ?? biz?.trans_id ?? order.providerTxnId;
+      const providerStatus = biz?.trade_status ?? biz?.order_status;
+      if (!providerStatus) {
+        return {
+          ok: false,
+          error: {
+            code: 'TELEBIRR_QUERY_INCOMPLETE',
+            message: 'Telebirr queryOrder response did not include a status',
+          },
+        };
+      }
+      return this.applyTelebirrProviderUpdate({
+        orderId,
+        providerTxnId: providerTxnId ?? `telebirr_query_${orderId}`,
+        providerStatus,
+        rawPayload: JSON.stringify(result),
+        receiptNonce: `query_${orderId}_${Date.now()}`,
+        source: 'telebirr_query_order',
+        createReceipt: false,
+      });
+    } catch (error) {
+      this.logger.warn(
+        `Telebirr queryOrder failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return {
+        ok: false,
+        error: {
+          code: 'TELEBIRR_QUERY_FAILED',
+          message:
+            error instanceof Error ? error.message : 'Telebirr query failed',
+        },
+      };
+    }
+  }
+
+  private async applyTelebirrProviderUpdate(params: {
+    orderId: string;
+    providerTxnId: string;
+    providerStatus: string;
+    rawPayload: string;
+    receiptNonce: string;
+    source: string;
+    createReceipt?: boolean;
+  }): Promise<OrderPayload> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: params.orderId },
+    });
+    if (!order) {
+      return {
+        ok: false,
+        error: { code: 'ORDER_NOT_FOUND', message: 'Order not found' },
+      };
+    }
+
+    const mappedStatus = this.telebirrService.mapTradeStatusToPaymentStatus(
+      params.providerStatus,
+    );
+    const callbackState =
+      mappedStatus === 'SUCCESS'
+        ? PaymentState.SUCCESS
+        : mappedStatus === 'FAILED'
+          ? PaymentState.FAILED
+          : PaymentState.PENDING;
+    const callbackSuccess = callbackState === PaymentState.SUCCESS;
+    const callbackFailed = callbackState === PaymentState.FAILED;
+    const payloadHash = buildCallbackPayloadHash(params.rawPayload);
+
+    const existingAttempt = await this.prisma.paymentAttempt.findFirst({
+      where: {
+        orderId: params.orderId,
+        OR: [
+          { providerTxnId: params.providerTxnId },
+          { channel: PaymentChannel.TELEBIRR_H5 },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    if (existingAttempt?.state === PaymentState.SUCCESS && callbackSuccess) {
+      return { ok: true, order: toOrderModel(order) };
+    }
+    const existingReceipt =
+      params.createReceipt === false
+        ? null
+        : await this.prisma.paymentCallbackReceipt.findFirst({
+            where: {
+              providerTxnId: params.providerTxnId,
+              nonce: params.receiptNonce,
+            },
+          });
+    if (existingReceipt?.payloadHash === payloadHash) {
+      return { ok: true, order: toOrderModel(order) };
+    }
+    if (existingReceipt) {
+      this.paymentMetricsService.markTxnConflict();
+      return {
+        ok: false,
+        error: {
+          code: 'PAYMENT_CALLBACK_TXN_CONFLICT',
+          message:
+            'Provider transaction id conflicts with another callback payload',
+        },
+      };
+    }
+
+    try {
+      const updatedOrder = await this.prisma.$transaction(async (tx) => {
+        if (params.createReceipt !== false) {
+          await tx.paymentCallbackReceipt.create({
+            data: {
+              orderId: params.orderId,
+              providerTxnId: params.providerTxnId,
+              nonce: params.receiptNonce,
+              payloadHash,
+              requestId: params.source,
+            },
+          });
+        }
+
+        const paymentAttempt =
+          existingAttempt ??
+          (await tx.paymentAttempt.create({
+            data: {
+              orderId: params.orderId,
+              channel: PaymentChannel.TELEBIRR_H5,
+              state: PaymentState.PENDING,
+            },
+          }));
+
+        await tx.paymentAttempt.update({
+          where: { id: paymentAttempt.id },
+          data: {
+            state: callbackState,
+            providerTxnId: params.providerTxnId,
+            rawCallback: params.rawPayload,
+            callbackAt: new Date(),
+          },
+        });
+
+        let targetState = order.state;
+        let targetPaymentState = order.paymentState;
+        if (callbackSuccess && order.state === OrderState.PENDING_PAYMENT) {
+          let deliveryAutoAccept = false;
+          if (order.deliveryType === DeliveryType.DELIVERY) {
+            const cfg = await tx.shopDeliveryConfig.findUnique({
+              where: { shopId: order.shopId },
+            });
+            deliveryAutoAccept = Boolean(
+              (cfg as { deliveryAutoAccept?: boolean } | null)
+                ?.deliveryAutoAccept,
+            );
+          }
+          targetState = deliveryAutoAccept
+            ? OrderState.PREPARING
+            : OrderState.PAID;
+          targetPaymentState = PaymentState.SUCCESS;
+        } else if (callbackFailed && order.state === OrderState.PENDING_PAYMENT) {
+          targetState = OrderState.PAYMENT_FAILED;
+          targetPaymentState = PaymentState.FAILED;
+        } else if (callbackState === PaymentState.PENDING) {
+          targetPaymentState = PaymentState.PENDING;
+        } else if (
+          callbackFailed &&
+          (order.state === OrderState.PAID ||
+            order.state === OrderState.COMPLETED)
+        ) {
+          targetState = order.state;
+          targetPaymentState = order.paymentState;
+        }
+
+        const next = await tx.order.update({
+          where: { id: order.id },
+          data: {
+            state: targetState,
+            status: merchantStatusFromOrderState(targetState),
+            paymentState: targetPaymentState,
+            providerTxnId: params.providerTxnId,
+            paidAt: callbackSuccess ? new Date() : order.paidAt,
+          },
+        });
+
+        await tx.orderStatusLog.create({
+          data: {
+            orderId: order.id,
+            fromState: order.state,
+            toState: next.state,
+            operatorType: 'PAYMENT_PROVIDER',
+            reason: `${params.source}_${params.providerStatus}`,
+            metadata: { providerTxnId: params.providerTxnId },
+          },
+        });
+        return next;
+      });
+
+      if (callbackSuccess) {
+        await this.paymentEventProducer.publish('payment.succeeded', {
+          orderId: updatedOrder.id,
+          providerTxnId: params.providerTxnId,
+          callbackStatus: params.providerStatus,
+        });
+        this.paymentMetricsService.markCallbackSuccess();
+      } else if (callbackFailed) {
+        await this.paymentEventProducer.publish('payment.failed', {
+          orderId: updatedOrder.id,
+          providerTxnId: params.providerTxnId,
+          callbackStatus: params.providerStatus,
+        });
+        this.paymentMetricsService.markCallbackFailed();
+      }
+
+      if (callbackSuccess && updatedOrder.tableId) {
+        void this.emitTableStatusChanged(
+          updatedOrder.shopId,
+          updatedOrder.tableId,
+        );
+      }
+
+      return { ok: true, order: toOrderModel(updatedOrder) };
+    } catch (error) {
       if (isUniqueConstraintError(error)) {
         this.paymentMetricsService.markReplayRejected();
         return {

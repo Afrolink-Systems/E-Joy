@@ -346,6 +346,7 @@ type Mutation {
   markStaffNotificationRead(input: MarkStaffNotificationReadInput!): Boolean!
   pushStaffAnnouncement(content: String!, shopId: String!, title: String!): StaffNotificationModel!
   rejectShopApplication(reason: String!, shopId: String!): Boolean!
+  reconcileTelebirrOrder(orderId: ID!): OrderPayload!
   reprintOrder(orderId: String!): StaffPrintJobModel!
   resetStaffPassword(shopId: String, staffId: String!, verification: SensitiveActionVerificationInput!): ResetPasswordPayload!
   resolveServiceTicket(input: ResolveServiceTicketInput!): ServiceTicketModel

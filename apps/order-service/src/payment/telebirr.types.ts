@@ -1,66 +1,76 @@
-/**
- * Telebirr Fabric Payment Gateway — request/response shapes (integration layer).
- * Field names follow common Fabric H5 docs; adjust via service if your tenant differs.
- */
-
-/** POST /payment/v1/token (fabric token) — response variants seen across environments */
 export type FabricTokenResponse = {
   token?: string;
   access_token?: string;
-  result?: { token?: string };
-  data?: { token?: string };
-  biz_content?: string;
+  effectiveDate?: string;
+  expirationDate?: string;
+  result?: { token?: string; expirationDate?: string };
+  data?: { token?: string; expirationDate?: string };
   code?: string;
   msg?: string;
   errorMsg?: string;
 };
 
-/** Encrypted business payload before RSA (create order) */
-export type TelebirrCreateOrderBizPayload = {
-  appId: string;
-  notifyUrl: string;
-  outTradeNo: string;
-  receiveName: string;
-  returnUrl: string;
-  shortCode: string;
-  subject: string;
-  timeoutExpress: string;
-  totalAmount: string;
+export type TelebirrSignedRequest = {
   timestamp: string;
-  nonce: string;
-};
-
-/** Outer create-order request body */
-export type TelebirrCreateOrderRequest = {
-  appid: string;
-  biz_content: string;
+  nonce_str: string;
+  method: string;
+  version: '1.0';
+  sign_type: 'SHA256WithRSA';
   sign: string;
-  timestamp: string;
-  nonce: string;
+  biz_content: Record<string, string>;
 };
 
-export type TelebirrCreateOrderResponse = {
-  toPayUrl?: string;
-  result?: { toPayUrl?: string };
-  data?: { toPayUrl?: string };
+export type TelebirrPreOrderResponse = {
+  result?: string;
   code?: string;
   msg?: string;
-};
-
-/** Decrypted notify payload (after RSA decrypt of biz_content) */
-export type TelebirrNotifyBizPayload = {
-  outTradeNo: string;
-  tradeNo: string;
-  /** e.g. SUCCESS / FAILED */
-  tradeStatus: string;
-  totalAmount?: string;
-};
-
-/** Raw webhook POST body (may be encrypted envelope) */
-export type TelebirrWebhookEnvelope = {
-  appid?: string;
-  biz_content?: string;
+  nonce_str?: string;
   sign?: string;
-  timestamp?: string;
-  nonce?: string;
+  sign_type?: string;
+  biz_content?: {
+    prepay_id?: string;
+    merch_order_id?: string;
+  };
+};
+
+export type TelebirrQueryOrderResponse = {
+  result?: string;
+  code?: string;
+  msg?: string;
+  nonce_str?: string;
+  sign?: string;
+  sign_type?: string;
+  biz_content?: {
+    merch_order_id?: string;
+    order_status?: string;
+    trade_status?: string;
+    payment_order_id?: string;
+    trans_time?: string;
+    trans_currency?: string;
+    total_amount?: string;
+    trans_id?: string;
+  };
+};
+
+export type TelebirrNotifyPayload = {
+  notify_url?: string;
+  appid?: string;
+  notify_time?: string;
+  merch_code?: string;
+  merch_order_id: string;
+  payment_order_id: string;
+  total_amount?: string;
+  trans_currency?: string;
+  trade_status: string;
+  trans_end_time?: string;
+  callback_info?: string;
+  sign: string;
+  sign_type: 'SHA256WithRSA' | string;
+};
+
+export type TelebirrCheckoutResult = {
+  prepayId: string;
+  merchOrderId: string;
+  rawRequest: string;
+  toPayUrl: string;
 };

@@ -1,278 +1,497 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { createHmac, randomUUID, timingSafeEqual } from 'node:crypto';
-import NodeRSA from 'node-rsa';
+import {
+  constants,
+  createVerify,
+  randomBytes,
+  sign as cryptoSign,
+  timingSafeEqual,
+} from 'node:crypto';
 import type {
   FabricTokenResponse,
-  TelebirrCreateOrderBizPayload,
-  TelebirrCreateOrderRequest,
-  TelebirrCreateOrderResponse,
-  TelebirrNotifyBizPayload,
-  TelebirrWebhookEnvelope,
+  TelebirrCheckoutResult,
+  TelebirrNotifyPayload,
+  TelebirrPreOrderResponse,
+  TelebirrQueryOrderResponse,
+  TelebirrSignedRequest,
 } from './telebirr.types';
 
 const DEFAULT_API_BASE =
   'https://developerportal.ethiotelebirr.et:38443/apiaccess/payment/gateway';
+const DEFAULT_WEB_BASE =
+  'https://developerportal.ethiotelebirr.et:38443/payment/web/paygate?';
+const SIGN_EXCLUDED_FIELDS = new Set([
+  'sign',
+  'sign_type',
+  'header',
+  'refund_info',
+  'openType',
+  'raw_request',
+  'biz_content',
+]);
+
+type TelebirrConfig = {
+  apiBase: string;
+  webBaseUrl: string;
+  fabricAppId: string;
+  appSecret: string;
+  merchantAppId: string;
+  merchantCode: string;
+  privateKeyPem: string;
+  publicKeyPem: string;
+  notifyUrl: string;
+  returnUrl: string;
+  timeoutExpress: string;
+};
 
 @Injectable()
 export class TelebirrService {
   private readonly logger = new Logger(TelebirrService.name);
+  private fabricToken?: { value: string; expiresAtMs: number };
 
   isConfigured(): boolean {
     const c = this.config();
     return Boolean(
       c.apiBase &&
-      c.appId &&
-      c.appKey &&
-      c.publicKeyPem &&
-      c.shortCode &&
-      c.notifyUrl,
+        c.webBaseUrl &&
+        c.fabricAppId &&
+        c.appSecret &&
+        c.merchantAppId &&
+        c.merchantCode &&
+        c.privateKeyPem &&
+        c.notifyUrl,
     );
   }
 
-  private config() {
+  private config(): TelebirrConfig {
+    const apiBase =
+      process.env.TELEBIRR_BASE_URL ??
+      process.env.TELEBIRR_API_BASE ??
+      DEFAULT_API_BASE;
     return {
-      apiBase: (process.env.TELEBIRR_API_BASE ?? DEFAULT_API_BASE).replace(
-        /\/$/,
+      apiBase: apiBase.replace(/\/$/, ''),
+      webBaseUrl: process.env.TELEBIRR_WEB_BASE_URL ?? DEFAULT_WEB_BASE,
+      fabricAppId:
+        process.env.TELEBIRR_FABRIC_APP_ID?.trim() ??
+        process.env.TELEBIRR_APP_ID?.trim() ??
         '',
+      appSecret:
+        process.env.TELEBIRR_APP_SECRET?.trim() ??
+        process.env.TELEBIRR_APP_KEY?.trim() ??
+        '',
+      merchantAppId:
+        process.env.TELEBIRR_MERCHANT_APP_ID?.trim() ??
+        process.env.TELEBIRR_APP_ID?.trim() ??
+        '',
+      merchantCode:
+        process.env.TELEBIRR_MERCHANT_CODE?.trim() ??
+        process.env.TELEBIRR_SHORT_CODE?.trim() ??
+        '',
+      privateKeyPem: this.normalizePem(
+        process.env.TELEBIRR_PRIVATE_KEY,
+        'PRIVATE KEY',
       ),
-      fabricTokenPath:
-        process.env.TELEBIRR_FABRIC_TOKEN_PATH ?? '/payment/v1/token',
-      createOrderPath:
-        process.env.TELEBIRR_CREATE_ORDER_PATH ?? '/payment/v1/createOrder',
-      appId: process.env.TELEBIRR_APP_ID?.trim() ?? '',
-      appKey: process.env.TELEBIRR_APP_KEY?.trim() ?? '',
-      shortCode: process.env.TELEBIRR_SHORT_CODE?.trim() ?? '',
-      publicKeyPem:
-        process.env.TELEBIRR_PUBLIC_KEY?.replace(/\\n/g, '\n') ?? '',
-      privateKeyPem:
-        process.env.TELEBIRR_PRIVATE_KEY?.replace(/\\n/g, '\n') ?? '',
+      publicKeyPem: this.normalizePem(
+        process.env.TELEBIRR_PUBLIC_KEY,
+        'PUBLIC KEY',
+      ),
       notifyUrl: process.env.TELEBIRR_NOTIFY_URL?.trim() ?? '',
       returnUrl:
         process.env.TELEBIRR_RETURN_URL?.trim() ??
         process.env.TELEBIRR_NOTIFY_URL?.trim() ??
         '',
-      timeoutExpress: process.env.TELEBIRR_ORDER_TIMEOUT_MIN ?? '30',
+      timeoutExpress: process.env.TELEBIRR_ORDER_TIMEOUT ?? '120m',
     };
   }
 
-  /**
-   * Request Fabric authorization token used as Bearer for createOrder.
-   * Default body: { fabricAppId, appSecret } — override path via TELEBIRR_FABRIC_TOKEN_PATH.
-   */
   async applyFabricToken(): Promise<string> {
+    const cached = this.fabricToken;
+    if (cached && cached.expiresAtMs > Date.now() + 30_000) {
+      return cached.value;
+    }
+
     const c = this.config();
-    const url = `${c.apiBase}${c.fabricTokenPath}`;
-    const body = {
-      fabricAppId: c.appId,
-      appSecret: c.appKey,
-    };
-    const res = await fetch(url, {
+    const res = await this.fetchTelebirr(`${c.apiBase}/payment/v1/token`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      headers: {
+        'Content-Type': 'application/json',
+        'X-APP-Key': c.fabricAppId,
+      },
+      body: JSON.stringify({ appSecret: c.appSecret }),
     });
     const text = await res.text();
-    let json: FabricTokenResponse;
-    try {
-      json = JSON.parse(text) as FabricTokenResponse;
-    } catch {
-      this.logger.warn(`Fabric token non-JSON response: ${text.slice(0, 200)}`);
-      throw new Error('Fabric token response is not JSON');
-    }
+    const json = this.parseJson<FabricTokenResponse>(
+      text,
+      'Fabric token response is not JSON',
+    );
     if (!res.ok) {
       throw new Error(
         `Fabric token HTTP ${res.status}: ${json.msg ?? json.errorMsg ?? text}`,
       );
     }
+
     const token =
       json.token ?? json.access_token ?? json.result?.token ?? json.data?.token;
     if (!token) {
       throw new Error('Fabric token missing in response');
     }
+
+    this.fabricToken = {
+      value: token,
+      expiresAtMs: this.resolveExpirationMs(json),
+    };
     return token;
   }
 
-  /**
-   * RSA encrypt plain text with Telebirr public key (PKCS#1).
-   */
-  encryptPayloadWithPublicKey(plainUtf8: string): string {
-    const c = this.config();
-    if (!c.publicKeyPem) {
-      throw new Error('TELEBIRR_PUBLIC_KEY is not set');
-    }
-    const key = new NodeRSA(c.publicKeyPem, 'public');
-    key.setOptions({ encryptionScheme: 'pkcs1' });
-    return key.encrypt(plainUtf8, 'base64');
-  }
-
-  /**
-   * HMAC-SHA256 hex signature used for request/wrapper signing with app key.
-   */
-  signWithAppKey(parts: string): string {
-    const secret = this.config().appKey;
-    if (!secret) {
-      throw new Error('TELEBIRR_APP_KEY is not set');
-    }
-    return createHmac('sha256', secret).update(parts).digest('hex');
-  }
-
-  private signCreateOrderRequest(req: TelebirrCreateOrderRequest): string {
-    const raw = `${req.appid}${req.timestamp}${req.nonce}${req.biz_content}`;
-    return this.signWithAppKey(raw);
-  }
-
-  /**
-   * Create H5 payment order; returns checkout URL for the customer browser.
-   * @param orderId — used as outTradeNo (must match webhook)
-   * @param totalAmountMinor — order total in minor units (e.g. cents)
-   */
   async createH5Order(
     orderId: string,
     totalAmountMinor: number,
-  ): Promise<{ toPayUrl: string }> {
-    const c = this.config();
+  ): Promise<TelebirrCheckoutResult> {
     if (!this.isConfigured()) {
       throw new Error('Telebirr is not fully configured (check env)');
     }
-    const token = await this.applyFabricToken();
-    const timestamp = Date.now().toString();
-    const nonce = randomUUID();
+    const c = this.config();
+    const fabricToken = await this.applyFabricToken();
+    const title = `E-Joy Order ${orderId}`;
     const totalAmount = (totalAmountMinor / 100).toFixed(2);
-    const biz: TelebirrCreateOrderBizPayload = {
-      appId: c.appId,
-      notifyUrl: c.notifyUrl,
-      outTradeNo: orderId,
-      receiveName: 'E-Joy Order',
-      returnUrl: c.returnUrl || c.notifyUrl,
-      shortCode: c.shortCode,
-      subject: `Order ${orderId}`,
-      timeoutExpress: c.timeoutExpress,
-      totalAmount,
-      timestamp,
-      nonce,
+    const bizContent: Record<string, string> = {
+      notify_url: c.notifyUrl,
+      appid: c.merchantAppId,
+      merch_code: c.merchantCode,
+      merch_order_id: orderId,
+      trade_type: 'Checkout',
+      title,
+      total_amount: totalAmount,
+      trans_currency: 'ETB',
+      timeout_express: c.timeoutExpress,
     };
-    const bizJson = JSON.stringify(biz);
-    const bizContent = this.encryptPayloadWithPublicKey(bizJson);
-    const req: TelebirrCreateOrderRequest = {
-      appid: c.appId,
-      biz_content: bizContent,
-      sign: '',
-      timestamp,
-      nonce,
-    };
-    req.sign = this.signCreateOrderRequest(req);
-    const url = `${c.apiBase}${c.createOrderPath}`;
-    const res = await fetch(url, {
+    const request = this.buildSignedRequest('payment.preorder', bizContent);
+    const res = await this.fetchTelebirr(
+      `${c.apiBase}/payment/v1/merchant/preOrder`,
+      {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        'X-APP-Key': c.fabricAppId,
+        Authorization: this.formatBearerToken(fabricToken),
       },
-      body: JSON.stringify(req),
-    });
+      body: JSON.stringify(request),
+      },
+    );
     const text = await res.text();
-    let json: TelebirrCreateOrderResponse;
-    try {
-      json = JSON.parse(text) as TelebirrCreateOrderResponse;
-    } catch {
-      this.logger.warn(`createOrder non-JSON: ${text.slice(0, 300)}`);
-      throw new Error('Telebirr createOrder response is not JSON');
-    }
-    if (!res.ok) {
+    const json = this.parseJson<TelebirrPreOrderResponse>(
+      text,
+      'Telebirr preOrder response is not JSON',
+    );
+    if (!res.ok || (json.result && json.result !== 'SUCCESS')) {
       throw new Error(
-        `Telebirr createOrder HTTP ${res.status}: ${json.msg ?? text}`,
+        `Telebirr preOrder failed: ${json.msg ?? json.code ?? text}`,
       );
     }
-    const toPayUrl =
-      json.toPayUrl ?? json.result?.toPayUrl ?? json.data?.toPayUrl;
-    if (!toPayUrl) {
-      throw new Error('Telebirr createOrder: toPayUrl missing');
+    const prepayId = json.biz_content?.prepay_id;
+    if (!prepayId) {
+      throw new Error('Telebirr preOrder: prepay_id missing');
     }
-    return { toPayUrl };
+    const rawRequest = this.createRawCheckoutRequest(prepayId);
+    return {
+      prepayId,
+      merchOrderId: orderId,
+      rawRequest,
+      toPayUrl: `${c.webBaseUrl}${rawRequest}&version=1.0&trade_type=Checkout`,
+    };
   }
 
-  /**
-   * Decrypt biz_content using merchant private key (PEM).
-   */
-  decryptBizContentWithPrivateKey(encryptedBase64: string): string {
+  async queryOrder(orderId: string): Promise<TelebirrQueryOrderResponse> {
     const c = this.config();
-    if (!c.privateKeyPem) {
+    const fabricToken = await this.applyFabricToken();
+    const request = this.buildSignedRequest('payment.queryorder', {
+      appid: c.merchantAppId,
+      merch_code: c.merchantCode,
+      merch_order_id: orderId,
+    });
+    const res = await this.fetchTelebirr(
+      `${c.apiBase}/payment/v1/merchant/queryOrder`,
+      {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-APP-Key': c.fabricAppId,
+        Authorization: this.formatBearerToken(fabricToken),
+      },
+      body: JSON.stringify(request),
+      },
+    );
+    const text = await res.text();
+    const json = this.parseJson<TelebirrQueryOrderResponse>(
+      text,
+      'Telebirr queryOrder response is not JSON',
+    );
+    if (!res.ok || (json.result && json.result !== 'SUCCESS')) {
+      throw new Error(
+        `Telebirr queryOrder failed: ${json.msg ?? json.code ?? text}`,
+      );
+    }
+    return json;
+  }
+
+  buildSignedRequest(
+    method: string,
+    bizContent: Record<string, string>,
+  ): TelebirrSignedRequest {
+    const request: TelebirrSignedRequest = {
+      timestamp: this.createTimestamp(),
+      nonce_str: this.createNonceStr(),
+      method,
+      version: '1.0',
+      sign_type: 'SHA256WithRSA',
+      sign: '',
+      biz_content: bizContent,
+    };
+    request.sign = this.signRequestObject(request);
+    return request;
+  }
+
+  createRawCheckoutRequest(prepayId: string): string {
+    const c = this.config();
+    const map: Record<string, string> = {
+      appid: c.merchantAppId,
+      merch_code: c.merchantCode,
+      nonce_str: this.createNonceStr(),
+      prepay_id: prepayId,
+      timestamp: this.createTimestamp(),
+    };
+    const checkoutSign = this.signRequestObject(map);
+    return [
+      `appid=${map.appid}`,
+      `merch_code=${map.merch_code}`,
+      `nonce_str=${map.nonce_str}`,
+      `prepay_id=${map.prepay_id}`,
+      `timestamp=${map.timestamp}`,
+      `sign=${checkoutSign}`,
+      'sign_type=SHA256WithRSA',
+    ].join('&');
+  }
+
+  signRequestObject(requestObject: Record<string, unknown>): string {
+    const origin = this.buildSignatureBaseString(requestObject);
+    const privateKey = this.config().privateKeyPem;
+    if (!privateKey) {
       throw new Error('TELEBIRR_PRIVATE_KEY is not set');
     }
-    const key = new NodeRSA(c.privateKeyPem, 'private');
-    key.setOptions({ encryptionScheme: 'pkcs1' });
-    return key.decrypt(encryptedBase64, 'utf8');
+    return cryptoSign('sha256', Buffer.from(origin), {
+      key: privateKey,
+      padding: constants.RSA_PKCS1_PSS_PADDING,
+      saltLength: constants.RSA_PSS_SALTLEN_DIGEST,
+    }).toString('base64');
   }
 
-  /**
-   * Verify outer webhook sign (same string scheme as createOrder).
-   */
-  verifyWebhookEnvelopeSignature(env: TelebirrWebhookEnvelope): boolean {
-    const c = this.config();
-    if (
-      !env.sign ||
-      !env.appid ||
-      !env.timestamp ||
-      !env.nonce ||
-      !env.biz_content
-    ) {
-      return false;
+  buildSignatureBaseString(requestObject: Record<string, unknown>): string {
+    const fields: Record<string, string> = {};
+    for (const [key, value] of Object.entries(requestObject)) {
+      if (SIGN_EXCLUDED_FIELDS.has(key) || value === undefined || value === null) {
+        continue;
+      }
+      fields[key] = String(value);
     }
-    const expected = createHmac('sha256', c.appKey)
-      .update(`${env.appid}${env.timestamp}${env.nonce}${env.biz_content}`)
-      .digest('hex');
-    try {
-      const a = Buffer.from(expected, 'hex');
-      const b = Buffer.from(env.sign, 'hex');
-      return a.length === b.length && timingSafeEqual(a, b);
-    } catch {
-      return false;
+    const bizContent = requestObject.biz_content;
+    if (bizContent && typeof bizContent === 'object') {
+      for (const [key, value] of Object.entries(
+        bizContent as Record<string, unknown>,
+      )) {
+        if (
+          SIGN_EXCLUDED_FIELDS.has(key) ||
+          value === undefined ||
+          value === null
+        ) {
+          continue;
+        }
+        fields[key] = String(value);
+      }
     }
+    return Object.keys(fields)
+      .sort()
+      .map((key) => `${key}=${fields[key]}`)
+      .join('&');
   }
 
-  /**
-   * Parse notify: encrypted envelope, or plain JSON when TELEBIRR_WEBHOOK_ALLOW_PLAIN=true (dev only).
-   */
-  parseNotifyPayload(body: unknown): TelebirrNotifyBizPayload {
+  parseAndVerifyNotifyPayload(body: unknown): TelebirrNotifyPayload {
     if (!body || typeof body !== 'object') {
-      throw new Error('Invalid webhook body');
+      throw new Error('Invalid Telebirr notify body');
     }
-    const allowPlain = process.env.TELEBIRR_WEBHOOK_ALLOW_PLAIN === 'true';
-    const env = body as TelebirrWebhookEnvelope;
+    const payload = body as Partial<TelebirrNotifyPayload>;
     if (
-      allowPlain &&
-      'outTradeNo' in env &&
-      'tradeNo' in env &&
-      'tradeStatus' in env
+      !payload.merch_order_id ||
+      !payload.payment_order_id ||
+      !payload.trade_status ||
+      !payload.sign ||
+      !payload.sign_type
     ) {
-      return {
-        outTradeNo: String((env as { outTradeNo: string }).outTradeNo),
-        tradeNo: String((env as { tradeNo: string }).tradeNo),
-        tradeStatus: String((env as { tradeStatus: string }).tradeStatus),
-      };
+      throw new Error('Telebirr notify payload is missing required fields');
     }
-    if (!env.biz_content) {
-      throw new Error('Missing biz_content');
-    }
-    if (!this.verifyWebhookEnvelopeSignature(env)) {
-      throw new Error('Invalid webhook signature');
-    }
-    const plain = this.decryptBizContentWithPrivateKey(env.biz_content);
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(plain);
-    } catch {
-      throw new Error('Notify biz_content is not valid JSON');
-    }
-    const biz = parsed as Partial<TelebirrNotifyBizPayload>;
-    if (!biz.outTradeNo || !biz.tradeNo || !biz.tradeStatus) {
-      throw new Error('Notify payload missing outTradeNo/tradeNo/tradeStatus');
+    if (!this.verifySignedPayload(payload as Record<string, unknown>)) {
+      throw new Error('Invalid Telebirr notify signature');
     }
     return {
-      outTradeNo: String(biz.outTradeNo),
-      tradeNo: String(biz.tradeNo),
-      tradeStatus: String(biz.tradeStatus),
-      totalAmount: biz.totalAmount,
+      ...payload,
+      merch_order_id: String(payload.merch_order_id),
+      payment_order_id: String(payload.payment_order_id),
+      trade_status: String(payload.trade_status),
+      sign: String(payload.sign),
+      sign_type: String(payload.sign_type),
     };
+  }
+
+  verifySignedPayload(payload: Record<string, unknown>): boolean {
+    const publicKey = this.config().publicKeyPem;
+    const allowUnsigned =
+      process.env.NODE_ENV !== 'production' &&
+      process.env.TELEBIRR_WEBHOOK_ALLOW_UNSIGNED === 'true';
+    if (!publicKey) {
+      return allowUnsigned;
+    }
+    const signature = String(payload.sign ?? '');
+    if (!signature) {
+      return false;
+    }
+    const origin = this.buildSignatureBaseString(payload);
+    try {
+      const verifier = createVerify('sha256');
+      verifier.update(origin);
+      verifier.end();
+      return verifier.verify(
+        {
+          key: publicKey,
+          padding: constants.RSA_PKCS1_PSS_PADDING,
+          saltLength: constants.RSA_PSS_SALTLEN_DIGEST,
+        },
+        signature,
+        'base64',
+      );
+    } catch (err) {
+      this.logger.warn(
+        `Telebirr signature verification failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+      return false;
+    }
+  }
+
+  mapTradeStatusToPaymentStatus(
+    status: string,
+  ): 'SUCCESS' | 'FAILED' | 'PENDING' {
+    const normalized = status.trim().toUpperCase();
+    if (
+      normalized === 'COMPLETED' ||
+      normalized === 'SUCCESS' ||
+      normalized === 'PAY_SUCCESS'
+    ) {
+      return 'SUCCESS';
+    }
+    if (
+      normalized === 'FAILURE' ||
+      normalized === 'FAILED' ||
+      normalized === 'EXPIRED' ||
+      normalized === 'PAY_FAILED'
+    ) {
+      return 'FAILED';
+    }
+    return 'PENDING';
+  }
+
+  private createTimestamp(): string {
+    return Math.round(Date.now() / 1000).toString();
+  }
+
+  private createNonceStr(): string {
+    return randomBytes(24)
+      .toString('base64url')
+      .replace(/[^A-Za-z0-9]/g, '')
+      .slice(0, 32)
+      .padEnd(32, '0');
+  }
+
+  private formatBearerToken(token: string): string {
+    return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+  }
+
+  private parseJson<T>(text: string, message: string): T {
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      this.logger.warn(`${message}: ${text.slice(0, 300)}`);
+      throw new Error(message);
+    }
+  }
+
+  private async fetchTelebirr(
+    url: string,
+    init: RequestInit,
+  ): Promise<Response> {
+    try {
+      return await fetch(url, init);
+    } catch (error) {
+      const cause = (error as { cause?: { code?: string; message?: string } })
+        .cause;
+      const reason =
+        cause?.code && cause?.message
+          ? `${cause.code}: ${cause.message}`
+          : error instanceof Error
+            ? error.message
+            : String(error);
+      throw new Error(`Telebirr network request failed (${url}): ${reason}`);
+    }
+  }
+
+  private normalizePem(
+    value: string | undefined,
+    label: 'PRIVATE KEY' | 'PUBLIC KEY',
+  ): string {
+    const trimmed = value?.trim();
+    if (!trimmed || trimmed.startsWith('<')) {
+      return '';
+    }
+    const expanded = trimmed.replace(/^"|"$/g, '').replace(/\\n/g, '\n');
+    if (expanded.includes('-----BEGIN ')) {
+      return expanded;
+    }
+    const compact = expanded.replace(/\s+/g, '');
+    const lines = compact.match(/.{1,64}/g)?.join('\n') ?? compact;
+    return `-----BEGIN ${label}-----\n${lines}\n-----END ${label}-----`;
+  }
+
+  private resolveExpirationMs(json: FabricTokenResponse): number {
+    const raw =
+      json.expirationDate ??
+      json.result?.expirationDate ??
+      json.data?.expirationDate;
+    if (!raw) {
+      return Date.now() + 10 * 60 * 1000;
+    }
+    const parsed = this.parseTelebirrDate(raw);
+    return parsed ?? Date.now() + 10 * 60 * 1000;
+  }
+
+  private parseTelebirrDate(value: string): number | null {
+    if (!/^\d{14}$/.test(value)) {
+      return null;
+    }
+    const year = Number(value.slice(0, 4));
+    const month = Number(value.slice(4, 6)) - 1;
+    const day = Number(value.slice(6, 8));
+    const hour = Number(value.slice(8, 10));
+    const minute = Number(value.slice(10, 12));
+    const second = Number(value.slice(12, 14));
+    const utc = Date.UTC(year, month, day, hour, minute, second);
+    return Number.isFinite(utc) ? utc : null;
+  }
+
+  timingSafeSignatureEqual(a: string, b: string): boolean {
+    try {
+      const left = Buffer.from(a, 'base64');
+      const right = Buffer.from(b, 'base64');
+      return left.length === right.length && timingSafeEqual(left, right);
+    } catch {
+      return false;
+    }
   }
 }

@@ -162,6 +162,17 @@ export class OrderResolver {
     return this.orderService.initiatePayment(input);
   }
 
+  @UseGuards(JwtAuthGuard)
+  @Mutation(() => OrderPayload, { name: 'reconcileTelebirrOrder' })
+  reconcileTelebirrOrder(
+    @Args('orderId', { type: () => ID }) orderId: string,
+    @CurrentUserRole() role?: string,
+    @CurrentUserScope() scope?: string[],
+  ): Promise<OrderPayload> {
+    assertMerchantDispatchAccess(role, scope, 'write');
+    return this.orderService.reconcileTelebirrOrder(orderId);
+  }
+
   /**
    * Sandbox: returns a URL that simulates Telebirr redirect (see PaymentController GET).
    * Uses GraphQLString so code-first schema always registers this field (not TypeScript `String`).
