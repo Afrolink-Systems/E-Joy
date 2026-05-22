@@ -47,7 +47,6 @@ export function useCustomerOrderingApp() {
     onCheckoutCreated: async (order) => {
       setLastOrder(order)
       const nextOrderIds = orders.rememberOrderId(order.id)
-      setCartOpen(false)
       await orders.refetchOrders({ ids: nextOrderIds })
     },
     shopId: session.shopId,
@@ -70,6 +69,7 @@ export function useCustomerOrderingApp() {
     cart,
     cartOpen,
     categories: menu.categories,
+    checkoutPhase: checkout.checkoutPhase,
     checkoutLoading: checkout.checkoutLoading,
     clearCart,
     clearSession: session.clearSession,
