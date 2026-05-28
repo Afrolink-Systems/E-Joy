@@ -1,16 +1,27 @@
-import { ChevronDown, Search, ShoppingCart } from 'lucide-react'
-import { useMemo } from 'react'
-import { Alert, AlertAction, AlertDescription, AlertTitle } from '../../../components/ui/alert'
+import {
+  CakeSlice,
+  Coffee,
+  CupSoda,
+  Grid2X2,
+  IceCreamBowl,
+  Leaf,
+  Plus,
+  ShoppingBasket,
+  ShoppingCart,
+  Soup,
+  UserRound,
+} from 'lucide-react'
+import { useMemo, useState } from 'react'
+import {
+  AnimatedCollectionView,
+  CollectionViewTabs,
+  type AnimatedCollectionItem,
+  type CollectionViewMode,
+} from '../../../components/animated-collection'
+import DiscoverButton from '../../../components/discover-button'
+import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert'
 import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '../../../components/ui/card'
 import {
   Empty,
   EmptyDescription,
@@ -19,16 +30,14 @@ import {
   EmptyTitle,
 } from '../../../components/ui/empty'
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupInput,
-} from '../../../components/ui/input-group'
-import { ToggleGroup, ToggleGroupItem } from '../../../components/ui/toggle-group'
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from '../../../components/ui/resizable'
 import type { CartItem } from '../../../store/useCartStore'
 import type { MenuItem } from '../customer-ordering.types'
-import { categoryCartCount, formatBirr } from '../customer-ordering.utils'
+import { categoryCartCount, formatBirr, resolveProductImageUrl } from '../customer-ordering.utils'
 import { MenuSkeleton } from './MenuSkeleton'
-import { ProductCard } from './ProductCard'
 
 type MenuScreenProps = {
   cart: CartItem[]
@@ -53,6 +62,7 @@ type MenuScreenProps = {
 }
 
 export function MenuScreen(props: MenuScreenProps) {
+  const [view, setView] = useState<CollectionViewMode>('list')
   const categoryCounts = useMemo(() => {
     const counts = new Map<string, number>()
     for (const line of props.cart) {
@@ -62,121 +72,252 @@ export function MenuScreen(props: MenuScreenProps) {
     return counts
   }, [props.cart, props.menuRows])
 
+  const collectionItems = useMemo<AnimatedCollectionItem[]>(
+    () =>
+      props.visibleRows.map((item) => ({
+        id: item.id,
+        title: item.name,
+        subtitle: item.category,
+        image: resolveProductImageUrl(item.imageUrl),
+        onOpen: () => props.onOpenDetail(item),
+        meta: (
+          <div className="flex min-w-0 flex-col gap-1.5">
+            {item.category ? (
+              <span className="truncate text-xs font-semibold text-neutral-500 max-[370px]:text-[11px]">
+                {item.category}
+              </span>
+            ) : null}
+            <strong className="text-[17px] font-black text-[#151515] max-[370px]:text-[16px]">{formatBirr(item.unitPrice)}</strong>
+          </div>
+        ),
+        action: (
+          <Button
+            type="button"
+            size="icon"
+            className="absolute bottom-2.5 right-2.5 size-9 rounded-full bg-[#151515] text-white shadow-[0_10px_22px_rgba(0,0,0,0.18)] hover:bg-[#252525] max-[370px]:size-8"
+            onClick={() => props.onAdd(item)}
+            aria-label={`Add ${item.name}`}
+          >
+            <Plus className="size-5 max-[370px]:size-4" />
+          </Button>
+        ),
+      })),
+    [props],
+  )
+
   return (
-    <section className="flex h-svh min-h-svh flex-col overflow-hidden pb-[84px]">
-      <header className="sticky top-0 z-20 bg-gradient-to-b from-secondary to-background px-3 pb-3 pt-[calc(env(safe-area-inset-top)+10px)]">
-        <InputGroup className="h-11 w-[min(72%,300px)] rounded-full border-transparent bg-card/95">
-          <InputGroupAddon>
-            <Search />
-          </InputGroupAddon>
-          <InputGroupInput
-            value={props.search}
-            onChange={(e) => props.setSearch(e.target.value)}
+    <section className="relative flex h-svh min-h-svh flex-col overflow-hidden bg-[#f7f7f5]">
+      <header className="shrink-0 px-4 pt-[calc(env(safe-area-inset-top)+14px)] max-[370px]:px-3 max-[370px]:pt-[calc(env(safe-area-inset-top)+10px)]">
+        <div className="grid grid-cols-[48px_minmax(0,1fr)_48px] items-center gap-2 max-[370px]:grid-cols-[44px_minmax(0,1fr)_44px]">
+          <button
+            type="button"
+            className="grid size-11 place-items-center overflow-hidden rounded-full bg-[#e8c49e] max-[370px]:size-10"
+            onClick={props.onOpenInfo}
+            aria-label="Open shop information"
+          >
+            <UserRound className="size-6 text-[#171717] max-[370px]:size-5" />
+          </button>
+          <div className="min-w-0 text-center">
+            <h1 className="truncate text-[22px] font-black leading-none text-[#121212] max-[370px]:text-[20px]">Menu</h1>
+            <p className="mx-auto mt-1 max-w-[220px] truncate text-xs font-semibold text-neutral-400 max-[370px]:max-w-[180px] max-[370px]:text-[11px]">
+              {props.shopName} - Table {props.tableRef}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={props.onOpenCart}
+            className="relative grid size-11 place-items-center rounded-[1rem] bg-white text-[#151515] shadow-[0_10px_22px_rgba(0,0,0,0.08)] max-[370px]:size-10"
+            aria-label="Open cart"
+          >
+            <ShoppingCart className="size-6 max-[370px]:size-5" />
+            {props.totalQuantity > 0 ? (
+              <Badge variant="destructive" className="absolute -right-1 -top-1 min-w-5 justify-center rounded-full px-1 text-[10px]">
+                {props.totalQuantity}
+              </Badge>
+            ) : null}
+          </button>
+        </div>
+
+        <div className="mt-5 max-[370px]:mt-4">
+          <DiscoverButton
+            search={props.search}
+            onSearchChange={props.setSearch}
             placeholder="Search menu"
-            aria-label="Search menu"
           />
-        </InputGroup>
+        </div>
+
+        <CollectionViewTabs className="mt-4 max-[370px]:mt-3" value={view} onChange={setView} />
+
+        {view === 'card' ? (
+          <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 max-[370px]:-mx-3 max-[370px]:px-3">
+            {props.categories.map((category) => (
+              <CategoryPill
+                key={category}
+                active={props.selectedCategory === category}
+                category={category}
+                count={categoryCartCount(category, categoryCounts, props.totalQuantity)}
+                onClick={() => props.setSelectedCategory(category)}
+              />
+            ))}
+          </div>
+        ) : null}
       </header>
 
-      <Card className="mx-3 mt-3 rounded-b-none shadow-none">
-        <CardHeader>
-          <CardTitle className="truncate text-[21px] font-black">{props.shopName}</CardTitle>
-          <CardDescription>Table {props.tableRef}</CardDescription>
-          <CardAction>
-            <Button type="button" variant="ghost" size="sm" onClick={props.onOpenInfo}>
-              View
-              <ChevronDown data-icon="inline-end" />
-            </Button>
-          </CardAction>
-        </CardHeader>
-        <CardContent className="text-[15px] text-foreground/80">
-          Welcome. Order and pay from your phone.
-        </CardContent>
-      </Card>
-
       {props.error ? (
-        <Alert variant="destructive" className="mx-3 my-2 w-auto">
+        <Alert variant="destructive" className="mx-4 mt-3 w-auto rounded-3xl max-[370px]:mx-3">
           <AlertTitle>Menu could not load</AlertTitle>
           <AlertDescription>{props.error}</AlertDescription>
-          <AlertAction>
-            <Button type="button" variant="ghost" size="sm" onClick={props.onRefetch}>
-              Retry
-            </Button>
-          </AlertAction>
+          <Button type="button" variant="ghost" size="sm" onClick={props.onRefetch}>
+            Retry
+          </Button>
         </Alert>
       ) : null}
 
-      <div className="grid min-h-0 flex-1 grid-cols-[96px_minmax(0,1fr)] overflow-hidden bg-card max-[380px]:grid-cols-[84px_minmax(0,1fr)]">
-        <aside className="overflow-y-auto bg-muted/75 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <ToggleGroup
-            value={[props.selectedCategory]}
-            onValueChange={(value) => {
-              const next = value.at(-1)
-              if (next) props.setSelectedCategory(next)
-            }}
-            className="flex w-full flex-col gap-0 rounded-none p-0"
-          >
-            {props.categories.map((category) => (
-              <ToggleGroupItem
-                key={category}
-                value={category}
-                className="relative h-[72px] w-full rounded-none border-l-4 border-transparent px-2 text-center text-[13px] font-bold leading-tight data-[state=on]:border-primary data-[state=on]:bg-card data-[state=on]:text-primary max-[380px]:h-[68px]"
-              >
-                <span className="line-clamp-2">{category}</span>
-                {categoryCartCount(category, categoryCounts, props.totalQuantity) > 0 ? (
-                  <Badge className="absolute right-1.5 top-1.5 min-w-5 justify-center px-1 text-[10px]" variant="destructive">
-                    {categoryCartCount(category, categoryCounts, props.totalQuantity)}
-                  </Badge>
-                ) : null}
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
-        </aside>
-
-        <div className="min-w-0 overflow-y-auto px-2 pb-28 pt-2 [scrollbar-color:var(--primary)_transparent]">
-          {props.loading ? (
-            <MenuSkeleton />
-          ) : props.visibleRows.length === 0 ? (
-            <Empty className="min-h-[260px] border-0">
-              <EmptyHeader>
-                <EmptyMedia variant="icon">
-                  <Search />
-                </EmptyMedia>
-                <EmptyTitle>No menu items found</EmptyTitle>
-                <EmptyDescription>Try another search or category.</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {props.visibleRows.map((item) => (
-                <ProductCard
-                  key={item.id}
-                  item={item}
-                  onAdd={() => props.onAdd(item)}
-                  onOpen={() => props.onOpenDetail(item)}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {props.totalQuantity > 0 ? (
-        <Button
-          type="button"
-          className="fixed bottom-[calc(env(safe-area-inset-bottom)+76px)] left-[max(12px,calc((100vw-480px)/2+12px))] z-40 h-14 min-w-[236px] max-w-[calc(100vw-24px)] justify-start gap-3 rounded-full bg-card px-2 pr-4 text-primary shadow-xl hover:bg-card"
-          onClick={props.onOpenCart}
+      {view !== 'card' ? (
+        <ResizablePanelGroup
+          className="mt-3 min-h-0 flex-1 overflow-hidden px-4 max-[370px]:px-3"
+          id="customer-menu-category-rail"
+          orientation="horizontal"
         >
-          <span className="relative grid size-11 place-items-center rounded-full bg-primary text-primary-foreground">
-            <ShoppingCart />
-            <Badge className="absolute -right-2 -top-2 min-w-5 justify-center px-1 text-[10px]" variant="destructive">
-              {props.totalQuantity}
-            </Badge>
-          </span>
-          <span className="text-[17px] font-black">View cart</span>
-          <strong className="ml-auto text-xs text-foreground">{formatBirr(props.totalPrice)}</strong>
-        </Button>
-      ) : null}
+          <ResizablePanel
+            className="min-w-[50px] overflow-hidden"
+            defaultSize="56px"
+            maxSize="88px"
+            minSize="50px"
+          >
+            <aside className="no-scrollbar h-full overflow-y-auto pb-[132px]">
+              <div className="grid">
+                {props.categories.map((category) => (
+                  <CategoryTile
+                    key={category}
+                    active={props.selectedCategory === category}
+                    category={category}
+                    count={categoryCartCount(category, categoryCounts, props.totalQuantity)}
+                    onClick={() => props.setSelectedCategory(category)}
+                  />
+                ))}
+              </div>
+            </aside>
+          </ResizablePanel>
+
+          <ResizableHandle
+            className="mx-1 w-px bg-black/5 after:w-3 hover:bg-black/10 focus-visible:bg-red-200"
+            withHandle
+          />
+
+          <ResizablePanel
+            className="min-w-0 overflow-hidden"
+            defaultSize="100%"
+            minSize="220px"
+          >
+            <div className="no-scrollbar h-full min-w-0 overflow-y-auto pb-[132px] pl-2" data-mode={view}>
+              {props.loading ? (
+                <MenuSkeleton />
+              ) : props.visibleRows.length === 0 ? (
+                <Empty className="min-h-[320px] rounded-[1.6rem] border-0 bg-white/70">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <ShoppingBasket />
+                    </EmptyMedia>
+                    <EmptyTitle>No menu items found</EmptyTitle>
+                    <EmptyDescription>Try another search or category.</EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              ) : (
+                <AnimatedCollectionView items={collectionItems} view={view} />
+              )}
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      ) : (
+        <div className="mt-3 min-h-0 flex-1 overflow-hidden px-4 max-[370px]:px-3">
+          <div className="no-scrollbar h-full min-w-0 overflow-y-auto pb-[132px]">
+            {props.loading ? (
+              <MenuSkeleton />
+            ) : props.visibleRows.length === 0 ? (
+              <Empty className="min-h-[320px] rounded-[1.6rem] border-0 bg-white/70">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <ShoppingBasket />
+                  </EmptyMedia>
+                  <EmptyTitle>No menu items found</EmptyTitle>
+                  <EmptyDescription>Try another search or category.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            ) : (
+              <AnimatedCollectionView items={collectionItems} view={view} />
+            )}
+          </div>
+        </div>
+      )}
     </section>
   )
+}
+
+function CategoryPill({
+  active,
+  category,
+  count,
+  onClick,
+}: {
+  active: boolean
+  category: string
+  count: number
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative h-9 shrink-0 rounded-full border px-4 text-sm font-semibold transition max-[370px]:h-8 max-[370px]:px-3 max-[370px]:text-xs ${
+        active ? 'border-[#151515] bg-[#151515] text-white' : 'border-black/5 bg-white text-[#151515] shadow-sm'
+      }`}
+    >
+      {category}
+      {count > 0 ? <span className="ml-2 text-[11px]">{count}</span> : null}
+    </button>
+  )
+}
+
+function CategoryTile({
+  active,
+  category,
+  count,
+  onClick,
+}: {
+  active: boolean
+  category: string
+  count: number
+  onClick: () => void
+}) {
+  const Icon = categoryIcon(category)
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`relative flex min-h-[58px] w-full items-center justify-center rounded-none text-center transition max-[370px]:min-h-[54px] ${
+        active ? 'bg-red-50/70 text-red-500' : 'text-[#333] hover:bg-black/[0.025]'
+      }`}
+      aria-label={category}
+      title={category}
+    >
+      <Icon className={`size-[21px] max-[370px]:size-5 ${active ? 'text-red-500' : 'text-[#1f1f1f]'}`} />
+      {count > 0 ? (
+        <Badge variant="destructive" className="absolute right-0.5 top-1 min-w-4 justify-center rounded-full px-1 text-[9px]">
+          {count}
+        </Badge>
+      ) : null}
+    </button>
+  )
+}
+
+function categoryIcon(category: string) {
+  const value = category.toLowerCase()
+  if (value.includes('meal') || value.includes('main')) return Soup
+  if (value.includes('coffee')) return Coffee
+  if (value.includes('drink') || value.includes('juice')) return CupSoda
+  if (value.includes('dessert') || value.includes('cake')) return CakeSlice
+  if (value.includes('snack')) return IceCreamBowl
+  if (value.includes('salad')) return Leaf
+  return Grid2X2
 }

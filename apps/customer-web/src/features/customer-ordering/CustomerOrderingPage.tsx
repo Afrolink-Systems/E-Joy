@@ -5,7 +5,6 @@ import { ItemDetailDrawer } from './components/ItemDetailDrawer'
 import { MenuScreen } from './components/MenuScreen'
 import { MissingQrScreen } from './components/MissingQrScreen'
 import { OrdersScreen } from './components/OrdersScreen'
-import { ProfileScreen } from './components/ProfileScreen'
 import { ShopInfoDrawer } from './components/ShopInfoDrawer'
 import { useCustomerOrderingApp } from './hooks/useCustomerOrderingApp'
 
@@ -18,11 +17,11 @@ export function CustomerOrderingPage() {
 
   return (
     <main
-      className="min-h-svh bg-background text-foreground"
+      className="min-h-svh bg-[#ececea] text-foreground"
       data-theme={state.customerThemePreset}
       style={state.customerThemeVars}
     >
-      <div className="relative mx-auto min-h-svh w-full max-w-[480px] overflow-hidden bg-background">
+      <div className="relative mx-auto min-h-svh w-full max-w-[480px] overflow-hidden bg-[#f7f7f5] shadow-[0_0_80px_rgba(0,0,0,0.08)]">
         {state.activeTab === 'home' ? (
           <HomeScreen shopName={state.shopName} onStart={() => state.setActiveTab('menu')} />
         ) : null}
@@ -63,19 +62,6 @@ export function CustomerOrderingPage() {
           />
         ) : null}
 
-        {state.activeTab === 'profile' ? (
-          <ProfileScreen
-            shopId={state.shopId}
-            tableRef={state.tableRef}
-            onClearSession={() => {
-              state.clearCart()
-              state.clearSession()
-              window.location.reload()
-            }}
-            onGoOrders={() => state.setActiveTab('orders')}
-          />
-        ) : null}
-
         <BottomTabs
           activeTab={state.activeTab}
           onSelect={state.setActiveTab}
@@ -103,6 +89,7 @@ export function CustomerOrderingPage() {
 
       <CheckoutCartDrawer
         cart={state.cart}
+        checkoutPhase={state.checkoutPhase}
         checkoutLoading={state.checkoutLoading}
         deleteItem={state.deleteItem}
         incrementItem={state.incrementItem}

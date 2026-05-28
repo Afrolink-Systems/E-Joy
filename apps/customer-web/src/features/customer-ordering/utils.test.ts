@@ -46,6 +46,6 @@ describe('customer ordering utilities', () => {
   it('keeps cart key and tab labels stable', () => {
     expect(buildCartKey('p1', ' mild ')).toBe('p1::mild')
     expect(tabLabel('menu')).toBe('Order')
-    expect(tabLabel('profile')).toBe('Me')
+    expect(tabLabel('orders')).toBe('Orders')
   })
 })

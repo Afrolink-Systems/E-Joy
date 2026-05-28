@@ -43,8 +43,7 @@ export function buildCartKey(productId: string, remark?: string): string {
 export function tabLabel(tab: CustomerTab): string {
   if (tab === 'home') return 'Home'
   if (tab === 'menu') return 'Order'
-  if (tab === 'orders') return 'Orders'
-  return 'Me'
+  return 'Orders'
 }
 
 export function categoryCartCount(category: string, counts: Map<string, number>, total: number): number {

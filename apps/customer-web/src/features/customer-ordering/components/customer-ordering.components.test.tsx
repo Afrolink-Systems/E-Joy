@@ -18,6 +18,7 @@ vi.mock('../../../lib/mockTelebirrRedirectUrl', () => ({
 }))
 
 const baseCartProps = {
+  checkoutPhase: 'idle' as const,
   checkoutLoading: false,
   deleteItem: vi.fn(),
   incrementItem: vi.fn(),
@@ -97,7 +98,7 @@ describe('customer ordering components', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pay with Telebirr' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Checkout failed')).toBeInTheDocument()
+      expect(screen.getByText('Checkout needs attention')).toBeInTheDocument()
       expect(screen.getByText('Order service unavailable')).toBeInTheDocument()
     })
     expect(screen.getByRole('heading', { name: 'Chicken tibs' })).toBeInTheDocument()

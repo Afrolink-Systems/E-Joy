@@ -1,7 +1,6 @@
-import { ClipboardList } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ClipboardList, Clock3, ReceiptText, RefreshCw, Tag, Utensils } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '../../../components/ui/button'
-import { Card } from '../../../components/ui/card'
 import {
   Empty,
   EmptyContent,
@@ -11,8 +10,11 @@ import {
   EmptyTitle,
 } from '../../../components/ui/empty'
 import { Tabs, TabsList, TabsTrigger } from '../../../components/ui/tabs'
-import type { GetOrdersData } from '../../../graphql/getOrders'
-import { formatBirr } from '../customer-ordering.utils'
+import type { GetOrdersData, OrderHistoryRow } from '../../../graphql/getOrders'
+import {
+  formatBirr,
+  resolveProductImageUrl,
+} from '../customer-ordering.utils'
 import { LoadingState } from './LoadingState'
 
 type OrdersScreenProps = {
@@ -34,51 +36,153 @@ export function OrdersScreen({
   const visibleOrders = orderMode === 'dine' ? orders : []
 
   return (
-    <section className="min-h-svh bg-card px-4 pb-28 pt-[calc(env(safe-area-inset-top)+18px)]">
-      <header className="flex min-h-12 items-center justify-between">
-        <h1 className="text-[25px] font-black">Orders</h1>
-        <Button type="button" variant="ghost" onClick={onRefresh}>Refresh</Button>
+    <section className="min-h-svh bg-[#f7f7f5] px-4 pb-24 pt-[calc(env(safe-area-inset-top)+14px)] max-[370px]:px-3">
+      <header className="grid min-h-11 grid-cols-[44px_minmax(0,1fr)_44px] items-center gap-2">
+        <button
+          type="button"
+          className="grid size-11 place-items-center rounded-full text-[#151515] transition active:scale-95"
+          onClick={onGoOrder}
+          aria-label="Back"
+        >
+          <ArrowLeft className="size-6" />
+        </button>
+        <div className="min-w-0 text-center">
+          <h1 className="truncate text-[22px] font-black leading-none text-[#121212]">Orders</h1>
+          <p className="mt-1 text-xs font-semibold text-neutral-400">Your table order history</p>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon"
+          className="size-11 rounded-full bg-white text-[#151515] shadow-[0_10px_22px_rgba(0,0,0,0.08)]"
+          onClick={onRefresh}
+          aria-label="Refresh orders"
+        >
+          <RefreshCw className="size-5" />
+        </Button>
       </header>
-      <Tabs value={orderMode} onValueChange={(value) => setOrderMode(value as 'dine' | 'stored')} className="mt-3">
-        <TabsList variant="line" className="h-11 gap-8">
-          <TabsTrigger value="dine" className="text-[18px] font-black">Dine-in</TabsTrigger>
-          <TabsTrigger value="stored" className="text-[18px] font-black">Stored value</TabsTrigger>
+
+      <Tabs value={orderMode} onValueChange={(value) => setOrderMode(value as 'dine' | 'stored')} className="mt-5">
+        <TabsList className="grid h-11 w-full grid-cols-2 rounded-[1.4rem] border border-black/5 bg-white/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+          <TabsTrigger value="dine" className="rounded-full text-[13px] font-black data-active:bg-[#151515] data-active:text-white">
+            Dine-in
+          </TabsTrigger>
+          <TabsTrigger value="stored" className="rounded-full text-[13px] font-black data-active:bg-[#151515] data-active:text-white">
+            Stored value
+          </TabsTrigger>
         </TabsList>
       </Tabs>
+
       {loading ? (
         <LoadingState label="Loading orders" />
       ) : visibleOrders.length === 0 ? (
-        <Empty className="min-h-[65svh] border-0">
+        <Empty className="mt-4 min-h-[62svh] rounded-[1.6rem] border-0 bg-white/72 shadow-[0_14px_36px_rgba(20,20,20,0.05)]">
           <EmptyHeader>
             <EmptyMedia>
-              <ClipboardList className="size-20 text-muted-foreground" />
+              <ClipboardList className="size-16 text-neutral-400" />
             </EmptyMedia>
-            <EmptyTitle className="text-[18px]">You do not have orders yet.</EmptyTitle>
+            <EmptyTitle className="text-[18px]">No orders yet</EmptyTitle>
             <EmptyDescription>Placed orders will show up here.</EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <Button type="button" className="h-12 w-[220px] rounded-full" onClick={onGoOrder}>
+            <Button type="button" className="h-12 w-[200px] rounded-full bg-[#151515] font-black text-white hover:bg-[#252525]" onClick={onGoOrder}>
               Go order
             </Button>
           </EmptyContent>
         </Empty>
       ) : (
-        <div className="mt-4 flex flex-col gap-3">
+        <div className="mt-4 flex flex-col gap-3 pb-6">
           {visibleOrders.map((order) => (
-            <Card key={order.id}>
-              <button
-                type="button"
-                className="flex flex-col gap-2 p-4 text-left"
-                onClick={() => onOpenOrder(order.id)}
-              >
-                <span className="text-xs text-muted-foreground">{new Date(order.createdAt).toLocaleString()}</span>
-                <strong className="text-[21px] font-black">{formatBirr(order.totalAmount)}</strong>
-                <p className="m-0 text-sm text-muted-foreground">{order.items.length} items - {order.status}</p>
-              </button>
-            </Card>
+            <OrderCard key={order.id} order={order} onOpen={() => onOpenOrder(order.id)} />
           ))}
         </div>
       )}
     </section>
   )
+}
+
+function OrderCard({ order, onOpen }: { order: OrderHistoryRow; onOpen: () => void }) {
+  const firstItem = order.items[0]
+  const imageUrl = resolveProductImageUrl(firstItem?.product.imageUrl)
+  const status = statusMeta(order.status)
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="grid w-full grid-cols-[108px_minmax(0,1fr)_34px] items-center gap-4 rounded-[1.65rem] border border-black/5 bg-white/90 p-4 text-left shadow-[0_18px_46px_rgba(20,20,20,0.075)] transition active:scale-[0.985] max-[370px]:grid-cols-[88px_minmax(0,1fr)_28px] max-[370px]:gap-3 max-[370px]:p-3"
+    >
+      <img
+        src={imageUrl}
+        alt=""
+        className="size-[108px] rounded-full object-cover shadow-[0_12px_28px_rgba(20,20,20,0.1)] max-[370px]:size-[88px]"
+      />
+      <div className="min-w-0">
+        <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[13px] font-black uppercase max-[370px]:px-2 max-[370px]:text-[11px] ${status.className}`}>
+          <span className={`size-2.5 rounded-full ${status.dotClassName}`} />
+          {status.label}
+        </span>
+        <h2 className="mt-3 truncate text-[25px] font-black leading-tight text-[#151515] max-[370px]:text-[20px]">
+          {firstItem?.product.name ?? 'Order'}
+        </h2>
+        <div className="mt-3 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-[15px] font-bold text-neutral-500 max-[370px]:text-[12px]">
+          <span className="inline-flex items-center gap-1.5">
+            <Clock3 className="size-4 text-green-600" />
+            {formatOrderDate(order.createdAt)}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Tag className="size-4 text-green-600" />
+            {formatBirr(order.totalAmount)}
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Utensils className="size-4 text-green-600" />
+            {order.items.length > 1 ? `+${order.items.length - 1} other items` : '1 item'}
+          </span>
+        </div>
+      </div>
+      <span className="flex items-center justify-end gap-1">
+        <span className="hidden size-10 place-items-center rounded-full bg-white text-[#151515] shadow-[0_8px_22px_rgba(20,20,20,0.08)] min-[431px]:grid">
+          <ReceiptText className="size-5" />
+        </span>
+        <ChevronRight className="size-5 text-[#151515] max-[370px]:size-4" />
+      </span>
+    </button>
+  )
+}
+
+function formatOrderDate(value: string): string {
+  return new Intl.DateTimeFormat(undefined, {
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value))
+}
+
+function statusMeta(status: string): {
+  className: string
+  dotClassName: string
+  label: string
+} {
+  const value = status.toUpperCase()
+  if (value.includes('COMPLETE') || value.includes('PAID')) {
+    return {
+      className: 'bg-green-100 text-green-700',
+      dotClassName: 'bg-green-500',
+      label: 'Completed',
+    }
+  }
+  if (value.includes('FAIL') || value.includes('CANCEL')) {
+    return {
+      className: 'bg-red-50 text-red-600',
+      dotClassName: 'bg-red-500',
+      label: 'Failed',
+    }
+  }
+  return {
+    className: 'bg-red-50 text-red-500',
+    dotClassName: 'bg-red-500',
+    label: 'Pending',
+  }
 }
