@@ -2,12 +2,9 @@ import { Scanner, type IDetectedBarcode } from '@yudiel/react-qr-scanner'
 import {
   Camera,
   ChevronRight,
-  Coffee,
   QrCode,
   ScanLine,
   ShieldCheck,
-  Soup,
-  Utensils,
   X,
 } from 'lucide-react'
 import { useState } from 'react'
@@ -16,8 +13,10 @@ import { Button } from '../../../components/ui/button'
 import { useTableSessionStore } from '../../../store/useTableSessionStore'
 
 type HomeScreenProps = {
-  onStart: () => void
+  hasTableSession: boolean
+  onContinue: () => void
   shopName: string
+  tableRef: string
 }
 
 type QrSession = {
@@ -25,14 +24,18 @@ type QrSession = {
   table: string
 }
 
-const HERO_IMAGE =
-  'https://images.unsplash.com/photo-1543353071-10c8ba85a904?auto=format&fit=crop&w=900&q=86'
-const COFFEE_IMAGE =
-  'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=360&q=82'
-const PASTA_IMAGE =
-  'https://images.unsplash.com/photo-1621996346565-e3dbc646d9a9?auto=format&fit=crop&w=360&q=82'
+const HOME_BACKGROUND = '/images/ejoy-addis-home-bg.png'
 
-export function HomeScreen({ onStart, shopName }: HomeScreenProps) {
+function getHomeShopName(shopName: string) {
+  return shopName.trim() === 'E-Joy Addis Ababa' ? 'E-Joy Addis' : shopName
+}
+
+export function HomeScreen({
+  hasTableSession,
+  onContinue,
+  shopName,
+  tableRef,
+}: HomeScreenProps) {
   const [scannerOpen, setScannerOpen] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
   const setFromQrParams = useTableSessionStore((state) => state.setFromQrParams)
@@ -51,96 +54,92 @@ export function HomeScreen({ onStart, shopName }: HomeScreenProps) {
     setScannerOpen(false)
     setScanError(null)
     toast.success(`Table ${session.table} selected.`)
-    onStart()
+    onContinue()
   }
 
   return (
-    <section className="relative h-svh min-h-svh overflow-hidden bg-[#f6efe3] text-[#24180f]">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_8%,rgba(245,184,88,0.18),transparent_34%),radial-gradient(circle_at_92%_24%,rgba(30,106,57,0.13),transparent_32%),linear-gradient(180deg,#fff7eb_0%,#f6efe3_56%,#f3eadb_100%)]" />
-      <div className="absolute inset-x-0 top-0 h-[360px] overflow-hidden">
-        <img
-          src={HERO_IMAGE}
-          alt=""
-          className="absolute -right-28 top-16 h-[250px] w-[330px] rounded-full object-cover opacity-95 shadow-[0_26px_70px_rgba(61,35,15,0.24)] min-[431px]:-right-24 min-[431px]:h-[280px] min-[431px]:w-[370px] max-[370px]:-right-36 max-[370px]:top-[72px]"
-        />
-        <div className="absolute right-4 top-7 grid size-14 place-items-center rounded-full bg-[#2d1a0c] text-[#f8ecda] shadow-[0_16px_32px_rgba(42,25,12,0.2)]">
-          <Coffee className="size-7" />
-        </div>
-        <div className="absolute -left-20 top-28 h-48 w-48 rounded-full border border-[#b98a35]/20" />
-        <div className="absolute right-0 top-0 h-full w-[52%] bg-[linear-gradient(110deg,rgba(246,239,227,0)_0%,rgba(246,239,227,0.86)_78%)]" />
-      </div>
+    <section className="relative h-dvh overflow-hidden bg-[#f4ead7] text-[#27190e]">
+      <img
+        src={HOME_BACKGROUND}
+        alt=""
+        className="absolute inset-0 size-full object-cover object-[38%_center]"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,249,239,0.58)_0%,rgba(255,249,239,0.2)_58%,rgba(255,249,239,0)_100%),linear-gradient(180deg,rgba(255,249,239,0.08)_0%,rgba(255,249,239,0)_40%,rgba(244,234,215,0.72)_70%,rgba(244,234,215,0.98)_100%)]" />
 
-      <div className="no-scrollbar relative z-10 h-full overflow-y-auto px-5 pb-[calc(104px+env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+24px)] max-[370px]:px-4 max-[370px]:pt-[calc(env(safe-area-inset-top)+18px)]">
-        <div className="flex items-center gap-1">
-          <span className="h-5 w-1.5 rotate-[-18deg] rounded-full bg-green-700" />
-          <span className="h-6 w-1.5 rounded-full bg-[#d29b2e]" />
-          <span className="h-5 w-1.5 rotate-[18deg] rounded-full bg-red-500" />
-        </div>
-
-        <div className="mt-8 max-w-[265px] max-[370px]:mt-6">
-          <h1 className="text-[40px] font-black leading-[0.96] tracking-[-0.02em] text-[#3a2517] max-[370px]:text-[35px]">
-            {shopName}
+      <div className="relative z-10 flex h-full flex-col px-5 pb-[calc(104px+env(safe-area-inset-bottom))] pt-[calc(env(safe-area-inset-top)+36px)] max-[370px]:px-4 max-[370px]:pb-[calc(92px+env(safe-area-inset-bottom))] max-[370px]:pt-[calc(env(safe-area-inset-top)+26px)]">
+        <div className="mt-7 max-w-61.25 max-[370px]:mt-5 max-[370px]:max-w-54.5">
+          <h1 className="text-[38px] font-black leading-[0.92] text-[#3a2517] drop-shadow-[0_1px_0_rgba(255,248,236,0.55)] max-[370px]:text-[32px]">
+            {getHomeShopName(shopName)}
           </h1>
-          <div className="mt-5 h-1 w-16 rounded-full bg-[#bd8425]" />
-          <p className="mt-5 text-[17px] font-semibold leading-7 text-[#4e3a2b] max-[370px]:text-[15px] max-[370px]:leading-6">
-            Browse Ethiopian favorites, European comfort plates, coffee and cake. Pay with Telebirr, we bring it to your table.
+          <div className="mt-4 h-1 w-14 rounded-full bg-[#bd8425]" />
+          <p className="mt-4 max-w-53.75 text-[15px] font-semibold leading-[1.55] text-[#4e3a2b] max-[370px]:max-w-49.5 max-[370px]:text-[13px] max-[370px]:leading-5">
+            Order favorites, pay with Telebirr, and relax. We'll bring everything to your table.
           </p>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 max-[370px]:mt-6">
-          <CuisineCard image={COFFEE_IMAGE} icon={Coffee} label="Buna bar" />
-          <CuisineCard image={PASTA_IMAGE} icon={Utensils} label="Pasta & grill" />
-        </div>
+        <div className="mt-auto">
+          <section className="rounded-[1.5rem] border border-white/65 bg-[#fff8ed]/62 p-4 text-center shadow-[0_22px_54px_rgba(58,37,23,0.14),inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-xl max-[370px]:rounded-[1.35rem] max-[370px]:p-3.5">
+            <div className="mx-auto grid size-16 place-items-center rounded-full bg-[#eef2df]/82 text-green-800 shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_10px_24px_rgba(58,37,23,0.08)] backdrop-blur max-[370px]:size-14">
+              <QrCode className="size-8 max-[370px]:size-7" strokeWidth={2.4} />
+            </div>
+            <h2 className="mt-3 text-[23px] font-black leading-tight max-[370px]:text-[20px]">Scan QR Code</h2>
+            <p className="mx-auto mt-1.5 max-w-[260px] text-[14px] font-medium leading-5 text-[#6f6258] max-[370px]:text-[12px] max-[370px]:leading-[1.35rem]">
+              {hasTableSession
+                ? 'Scan again to switch table.'
+                : 'Scan the QR code on your table to view the menu and order.'}
+            </p>
+            <Button
+              type="button"
+              className="mt-4 h-12 w-full rounded-full bg-green-800 text-[15px] font-black text-[#fbf6ed] shadow-[0_14px_26px_rgba(22,101,52,0.24)] hover:bg-green-900 max-[370px]:mt-3 max-[370px]:h-11"
+              onClick={() => {
+                setScanError(null)
+                setScannerOpen(true)
+              }}
+            >
+              <ScanLine className="size-5" data-icon="inline-start" />
+              Scan QR Code
+            </Button>
+          </section>
 
-        <section className="mt-5 rounded-[1.7rem] border border-[#eadbc7] bg-[#fffdfa]/92 p-5 text-center shadow-[0_22px_55px_rgba(58,37,23,0.13)] max-[370px]:rounded-[1.45rem] max-[370px]:p-4">
-          <div className="mx-auto grid size-20 place-items-center rounded-full bg-[#eef0df] text-green-800 max-[370px]:size-16">
-            <QrCode className="size-10 max-[370px]:size-8" />
-          </div>
-          <h2 className="mt-5 text-[25px] font-black leading-tight max-[370px]:mt-4 max-[370px]:text-[22px]">Scan QR Code</h2>
-          <p className="mx-auto mt-2 max-w-[260px] text-[15px] font-medium leading-6 text-[#6f6258] max-[370px]:text-[14px]">
-            Scan the QR code on your table to switch table or start a fresh order.
-          </p>
-          <Button
-            type="button"
-            className="mt-5 h-[52px] w-full rounded-full bg-green-800 text-[16px] font-black text-[#fbf6ed] shadow-[0_14px_26px_rgba(22,101,52,0.24)] hover:bg-green-900"
-            onClick={() => {
-              setScanError(null)
-              setScannerOpen(true)
-            }}
-          >
-            <ScanLine className="size-5" data-icon="inline-start" />
-            Scan QR Code
-          </Button>
-        </section>
+          {hasTableSession ? (
+            <div className="mt-3">
+              <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-[10px] font-black uppercase tracking-[0.18em] text-[#bc862b]">
+                <span className="h-px bg-[#dfcfb9]" />
+                OR
+                <span className="h-px bg-[#dfcfb9]" />
+              </div>
 
-        <div className="my-5 grid grid-cols-[1fr_auto_1fr] items-center gap-4 text-xs font-black uppercase tracking-[0.2em] text-[#bc862b]">
-          <span className="h-px bg-[#dfcfb9]" />
-          OR
-          <span className="h-px bg-[#dfcfb9]" />
-        </div>
+              <button
+                type="button"
+                onClick={onContinue}
+                className="flex w-full items-center gap-3 rounded-[1.2rem] border border-[#eadbc7] bg-[#f5ead7]/94 p-3 text-left shadow-[0_14px_32px_rgba(58,37,23,0.1)] transition active:scale-[0.985]"
+              >
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-[#efd9af] text-[#a06f1e]">
+                  <QrCode className="size-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[15px] font-black text-[#24180f]">Continue ordering</span>
+                  <span className="mt-0.5 block truncate text-xs font-medium text-[#6f6258]">
+                    Table {tableRef || 'selected'} is ready.
+                  </span>
+                </span>
+                <ChevronRight className="size-5 shrink-0 text-[#3a2517]" />
+              </button>
+            </div>
+          ) : null}
 
-        <button
-          type="button"
-          onClick={onStart}
-          className="flex w-full items-center gap-4 rounded-[1.35rem] border border-[#eadbc7] bg-[#f5ead7]/88 p-4 text-left shadow-[0_14px_32px_rgba(58,37,23,0.08)] transition active:scale-[0.985]"
-        >
-          <span className="grid size-14 shrink-0 place-items-center rounded-full bg-[#efd9af] text-[#a06f1e] max-[370px]:size-12">
-            <Soup className="size-7 max-[370px]:size-6" />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[17px] font-black text-[#24180f] max-[370px]:text-[15px]">Browse menu first</span>
-            <span className="mt-1 block truncate text-sm font-medium text-[#6f6258]">Explore dishes and place your order.</span>
-          </span>
-          <ChevronRight className="size-5 shrink-0 text-[#3a2517]" />
-        </button>
-
-        <div className="mt-7 flex items-center gap-4 px-3 pb-8">
-          <span className="grid size-12 shrink-0 place-items-center rounded-full bg-green-50 text-green-700">
-            <ShieldCheck className="size-7" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-[16px] font-black">Safe. Fast. Convenient.</p>
-            <p className="mt-1 text-sm font-medium leading-5 text-[#6f6258]">Your order is secure and delivered to your table.</p>
+          <div className="mt-3 flex items-center gap-3 px-2">
+            <span className="grid size-9 shrink-0 place-items-center rounded-full bg-green-50/90 text-green-700">
+              <ShieldCheck className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-black">Safe. Fast. Convenient.</p>
+              <p className="text-xs font-medium leading-4 text-[#6f6258]">
+                {hasTableSession
+                  ? 'Your table session is ready.'
+                  : 'Your order starts after we know your table.'}
+              </p>
+            </div>
           </div>
         </div>
       </div>
@@ -154,29 +153,6 @@ export function HomeScreen({ onStart, shopName }: HomeScreenProps) {
         />
       ) : null}
     </section>
-  )
-}
-
-function CuisineCard({
-  icon: Icon,
-  image,
-  label,
-}: {
-  icon: typeof Coffee
-  image: string
-  label: string
-}) {
-  return (
-    <div className="relative h-24 overflow-hidden rounded-[1.25rem] bg-[#e8ddce] shadow-[0_12px_30px_rgba(58,37,23,0.09)] max-[370px]:h-20">
-      <img src={image} alt="" className="size-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-[#24180f]/70 to-transparent" />
-      <div className="absolute bottom-2.5 left-2.5 flex items-center gap-2 text-sm font-black text-[#fffaf0]">
-        <span className="grid size-7 place-items-center rounded-full bg-[#fffaf0]/92 text-[#3a2517]">
-          <Icon className="size-4" />
-        </span>
-        {label}
-      </div>
-    </div>
   )
 }
 

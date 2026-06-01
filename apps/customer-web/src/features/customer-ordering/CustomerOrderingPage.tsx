@@ -3,17 +3,12 @@ import { CheckoutCartDrawer } from './components/CheckoutCartDrawer'
 import { HomeScreen } from './components/HomeScreen'
 import { ItemDetailDrawer } from './components/ItemDetailDrawer'
 import { MenuScreen } from './components/MenuScreen'
-import { MissingQrScreen } from './components/MissingQrScreen'
 import { OrdersScreen } from './components/OrdersScreen'
 import { ShopInfoDrawer } from './components/ShopInfoDrawer'
 import { useCustomerOrderingApp } from './hooks/useCustomerOrderingApp'
 
 export function CustomerOrderingPage() {
   const state = useCustomerOrderingApp()
-
-  if (!state.hasTableSession) {
-    return <MissingQrScreen />
-  }
 
   return (
     <main
@@ -23,7 +18,12 @@ export function CustomerOrderingPage() {
     >
       <div className="relative mx-auto min-h-svh w-full max-w-[480px] overflow-hidden bg-[#f7f7f5] shadow-[0_0_80px_rgba(0,0,0,0.08)]">
         {state.activeTab === 'home' ? (
-          <HomeScreen shopName={state.shopName} onStart={() => state.setActiveTab('menu')} />
+          <HomeScreen
+            hasTableSession={state.hasTableSession}
+            shopName={state.shopName}
+            tableRef={state.tableRef}
+            onContinue={() => state.setActiveTab('menu')}
+          />
         ) : null}
 
         {state.activeTab === 'menu' ? (
@@ -62,11 +62,13 @@ export function CustomerOrderingPage() {
           />
         ) : null}
 
-        <BottomTabs
-          activeTab={state.activeTab}
-          onSelect={state.setActiveTab}
-          totalQuantity={state.totalQuantity}
-        />
+        {state.activeTab === 'home' ? null : (
+          <BottomTabs
+            activeTab={state.activeTab}
+            onSelect={state.setActiveTab}
+            totalQuantity={state.totalQuantity}
+          />
+        )}
       </div>
 
       <ItemDetailDrawer

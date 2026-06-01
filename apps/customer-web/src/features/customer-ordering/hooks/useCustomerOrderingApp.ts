@@ -14,7 +14,7 @@ import { useTelebirrCheckout } from './useTelebirrCheckout'
 
 export function useCustomerOrderingApp() {
   const session = useCustomerSessionContext()
-  const [activeTab, setActiveTab] = useState<CustomerTab>('menu')
+  const [activeTab, setActiveTab] = useState<CustomerTab>('home')
   const [search, setSearch] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
@@ -62,6 +62,11 @@ export function useCustomerOrderingApp() {
       window.history.replaceState({}, document.title, '/')
     }
   }, [clearCart])
+
+  useEffect(() => {
+    if (session.hasTableSession || activeTab === 'home') return
+    setActiveTab('home')
+  }, [activeTab, session.hasTableSession])
 
   return {
     activeTab,
