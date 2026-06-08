@@ -5,7 +5,7 @@ describe('products utils', () => {
   it('creates the default product form state', () => {
     expect(emptyProductForm()).toEqual({
       name: '',
-      category: '',
+      categoryId: '',
       priceBirr: '',
       imageUrl: '',
       active: true,

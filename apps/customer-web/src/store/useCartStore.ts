@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { CART_STORAGE_KEY } from '../lib/customerLocalData'
 
 export type CartItem = {
   id: string
@@ -21,6 +22,9 @@ type CartState = {
   removeItem: (id: string, remark?: string) => void
   deleteItem: (id: string, remark?: string) => void
   setLineQuantity: (id: string, quantity: number, remark?: string) => void
+  syncCatalogItems: (
+    items: Array<{ id: string; name?: string; unitPrice?: number }>,
+  ) => void
   clearCart: () => void
 }
 
@@ -54,6 +58,8 @@ export const useCartStore = create<CartState>()(
             const next = [...state.items]
             next[index] = {
               ...next[index],
+              name: item.name,
+              price: item.price,
               quantity: next[index].quantity + qty,
             }
             return { items: next }
@@ -104,10 +110,26 @@ export const useCartStore = create<CartState>()(
             )
             .filter((line) => line.quantity > 0),
         })),
+      syncCatalogItems: (items) =>
+        set((state) => {
+          if (!state.items.length || !items.length) return state
+          const catalog = new Map(items.map((item) => [item.id, item]))
+          let changed = false
+          const next = state.items.map((line) => {
+            const item = catalog.get(line.id)
+            if (!item) return line
+            const name = item.name ?? line.name
+            const price = item.unitPrice ?? line.price
+            if (name === line.name && price === line.price) return line
+            changed = true
+            return { ...line, name, price }
+          })
+          return changed ? { items: next } : state
+        }),
       clearCart: () => set({ items: [] }),
     }),
     {
-      name: 'ejoy_cart_v1',
+      name: CART_STORAGE_KEY,
       partialize: (state) => ({ items: state.items }),
       onRehydrateStorage: () => (state) => {
         if (!state?.items?.length) return

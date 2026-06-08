@@ -528,6 +528,30 @@ export class BannerModel {
   createdAt!: string;
 }
 
+@ObjectType()
+export class CategoryModel {
+  @Field(() => ID)
+  id!: string;
+
+  @Field()
+  shopId!: string;
+
+  @Field()
+  name!: string;
+
+  @Field()
+  iconKey!: string;
+
+  @Field()
+  color!: string;
+
+  @Field(() => Int)
+  sortOrder!: number;
+
+  @Field()
+  active!: boolean;
+}
+
 @ObjectType('TopDish')
 export class TopDishModel {
   @Field()
@@ -563,8 +587,11 @@ export class ProductModel {
   @Field()
   name!: string;
 
-  @Field()
-  category!: string;
+  @Field(() => String)
+  categoryId!: string;
+
+  @Field(() => CategoryModel)
+  category!: CategoryModel;
 
   @Field(() => Int)
   unitPrice!: number;

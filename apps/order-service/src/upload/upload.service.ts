@@ -14,6 +14,11 @@ import {
 
 /** Alias for Cloudinary upload API response (secure URL, public_id, etc.). */
 export type CloudinaryResponse = UploadApiResponse;
+export type UploadPurpose = 'product' | 'shop-logo' | 'platform-banner';
+
+export type UploadImageOptions = {
+  folder: string;
+};
 
 function toUploadError(err: unknown): Error {
   if (err instanceof Error) return err;
@@ -27,7 +32,10 @@ export class UploadService implements OnModuleInit {
     configureCloudinary();
   }
 
-  uploadImage(file: Express.Multer.File): Promise<CloudinaryResponse> {
+  uploadImage(
+    file: Express.Multer.File,
+    options: UploadImageOptions,
+  ): Promise<CloudinaryResponse> {
     if (!file?.buffer?.length) {
       throw new BadRequestException('file is required (empty buffer)');
     }
@@ -37,14 +45,11 @@ export class UploadService implements OnModuleInit {
       );
     }
 
-    const folder =
-      process.env.CLOUDINARY_UPLOAD_FOLDER?.trim() || 'ejoy-products';
-
     return new Promise<CloudinaryResponse>(
       (resolve, reject: (reason: Error) => void) => {
         const uploadStream = cloudinary.uploader.upload_stream(
           {
-            folder,
+            folder: options.folder,
             resource_type: 'image',
           },
           (err, result) => {

@@ -35,13 +35,13 @@ import {
   ResizablePanelGroup,
 } from '../../../components/ui/resizable'
 import type { CartItem } from '../../../store/useCartStore'
-import type { MenuItem } from '../customer-ordering.types'
+import type { MenuCategory, MenuItem } from '../customer-ordering.types'
 import { categoryCartCount, formatBirr, resolveProductImageUrl } from '../customer-ordering.utils'
 import { MenuSkeleton } from './MenuSkeleton'
 
 type MenuScreenProps = {
   cart: CartItem[]
-  categories: string[]
+  categories: MenuCategory[]
   error?: string
   loading: boolean
   menuRows: MenuItem[]
@@ -67,7 +67,10 @@ export function MenuScreen(props: MenuScreenProps) {
     const counts = new Map<string, number>()
     for (const line of props.cart) {
       const item = props.menuRows.find((row) => row.id === line.id)
-      if (item?.category) counts.set(item.category, (counts.get(item.category) ?? 0) + line.quantity)
+      if (item) {
+        const categoryName = item.categoryMeta.name
+        counts.set(categoryName, (counts.get(categoryName) ?? 0) + line.quantity)
+      }
     }
     return counts
   }, [props.cart, props.menuRows])
@@ -77,24 +80,22 @@ export function MenuScreen(props: MenuScreenProps) {
       props.visibleRows.map((item) => ({
         id: item.id,
         title: item.name,
-        subtitle: item.category,
+        subtitle: item.categoryMeta.name,
         image: resolveProductImageUrl(item.imageUrl),
         onOpen: () => props.onOpenDetail(item),
         meta: (
           <div className="flex min-w-0 flex-col gap-1.5">
-            {item.category ? (
-              <span className="truncate text-xs font-semibold text-neutral-500 max-[370px]:text-[11px]">
-                {item.category}
-              </span>
-            ) : null}
-            <strong className="text-[17px] font-black text-[#151515] max-[370px]:text-[16px]">{formatBirr(item.unitPrice)}</strong>
+            <span className="truncate text-xs font-semibold text-muted-foreground max-[370px]:text-[11px]">
+              {item.categoryMeta.name}
+            </span>
+            <strong className="text-[17px] font-black text-card-foreground max-[370px]:text-[16px]">{formatBirr(item.unitPrice)}</strong>
           </div>
         ),
         action: (
           <Button
             type="button"
             size="icon"
-            className="absolute bottom-2.5 right-2.5 size-9 rounded-full bg-[#151515] text-white shadow-[0_10px_22px_rgba(0,0,0,0.18)] hover:bg-[#252525] max-[370px]:size-8"
+            className="absolute bottom-2.5 right-2.5 size-9 rounded-full bg-primary text-primary-foreground shadow-[0_10px_22px_rgba(0,0,0,0.18)] hover:bg-primary/90 max-[370px]:size-8"
             onClick={() => props.onAdd(item)}
             aria-label={`Add ${item.name}`}
           >
@@ -106,32 +107,32 @@ export function MenuScreen(props: MenuScreenProps) {
   )
 
   return (
-    <section className="relative flex h-svh min-h-svh flex-col overflow-hidden bg-[#f7f7f5]">
+    <section className="relative flex h-svh min-h-svh flex-col overflow-hidden bg-background">
       <header className="shrink-0 px-4 pt-[calc(env(safe-area-inset-top)+14px)] max-[370px]:px-3 max-[370px]:pt-[calc(env(safe-area-inset-top)+10px)]">
         <div className="grid grid-cols-[48px_minmax(0,1fr)_48px] items-center gap-2 max-[370px]:grid-cols-[44px_minmax(0,1fr)_44px]">
           <button
             type="button"
-            className="grid size-11 place-items-center overflow-hidden rounded-full bg-[#e8c49e] max-[370px]:size-10"
+            className="grid size-11 place-items-center overflow-hidden rounded-full bg-secondary text-secondary-foreground max-[370px]:size-10"
             onClick={props.onOpenInfo}
             aria-label="Open shop information"
           >
-            <UserRound className="size-6 text-[#171717] max-[370px]:size-5" />
+            <UserRound className="size-6 max-[370px]:size-5" />
           </button>
           <div className="min-w-0 text-center">
-            <h1 className="truncate text-[22px] font-black leading-none text-[#121212] max-[370px]:text-[20px]">Menu</h1>
-            <p className="mx-auto mt-1 max-w-[220px] truncate text-xs font-semibold text-neutral-400 max-[370px]:max-w-[180px] max-[370px]:text-[11px]">
+            <h1 className="truncate text-[22px] font-black leading-none text-foreground max-[370px]:text-[20px]">Menu</h1>
+            <p className="mx-auto mt-1 max-w-[220px] truncate text-xs font-semibold text-muted-foreground max-[370px]:max-w-[180px] max-[370px]:text-[11px]">
               {props.shopName} - Table {props.tableRef}
             </p>
           </div>
           <button
             type="button"
             onClick={props.onOpenCart}
-            className="relative grid size-11 place-items-center rounded-[1rem] bg-white text-[#151515] shadow-[0_10px_22px_rgba(0,0,0,0.08)] max-[370px]:size-10"
+            className="relative grid size-11 place-items-center rounded-[1rem] bg-card text-card-foreground shadow-[0_10px_22px_rgba(0,0,0,0.08)] max-[370px]:size-10"
             aria-label="Open cart"
           >
             <ShoppingCart className="size-6 max-[370px]:size-5" />
             {props.totalQuantity > 0 ? (
-              <Badge variant="destructive" className="absolute -right-1 -top-1 min-w-5 justify-center rounded-full px-1 text-[10px]">
+              <Badge className="absolute -right-1 -top-1 min-w-5 justify-center rounded-full px-1 text-[10px] shadow-sm ring-2 ring-background">
                 {props.totalQuantity}
               </Badge>
             ) : null}
@@ -152,11 +153,11 @@ export function MenuScreen(props: MenuScreenProps) {
           <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 max-[370px]:-mx-3 max-[370px]:px-3">
             {props.categories.map((category) => (
               <CategoryPill
-                key={category}
-                active={props.selectedCategory === category}
+                key={category.name}
+                active={props.selectedCategory === category.name}
                 category={category}
-                count={categoryCartCount(category, categoryCounts, props.totalQuantity)}
-                onClick={() => props.setSelectedCategory(category)}
+                count={categoryCartCount(category.name, categoryCounts, props.totalQuantity)}
+                onClick={() => props.setSelectedCategory(category.name)}
               />
             ))}
           </div>
@@ -189,11 +190,11 @@ export function MenuScreen(props: MenuScreenProps) {
               <div className="grid">
                 {props.categories.map((category) => (
                   <CategoryTile
-                    key={category}
-                    active={props.selectedCategory === category}
+                    key={category.name}
+                    active={props.selectedCategory === category.name}
                     category={category}
-                    count={categoryCartCount(category, categoryCounts, props.totalQuantity)}
-                    onClick={() => props.setSelectedCategory(category)}
+                    count={categoryCartCount(category.name, categoryCounts, props.totalQuantity)}
+                    onClick={() => props.setSelectedCategory(category.name)}
                   />
                 ))}
               </div>
@@ -201,7 +202,7 @@ export function MenuScreen(props: MenuScreenProps) {
           </ResizablePanel>
 
           <ResizableHandle
-            className="mx-1 w-px bg-black/5 after:w-3 hover:bg-black/10 focus-visible:bg-red-200"
+            className="mx-1 w-px bg-border after:w-3 hover:bg-border/80 focus-visible:bg-ring"
             withHandle
           />
 
@@ -214,7 +215,7 @@ export function MenuScreen(props: MenuScreenProps) {
               {props.loading ? (
                 <MenuSkeleton />
               ) : props.visibleRows.length === 0 ? (
-                <Empty className="min-h-[320px] rounded-[1.6rem] border-0 bg-white/70">
+                <Empty className="min-h-[320px] rounded-[1.6rem] border-0 bg-card/70">
                   <EmptyHeader>
                     <EmptyMedia variant="icon">
                       <ShoppingBasket />
@@ -235,7 +236,7 @@ export function MenuScreen(props: MenuScreenProps) {
             {props.loading ? (
               <MenuSkeleton />
             ) : props.visibleRows.length === 0 ? (
-              <Empty className="min-h-[320px] rounded-[1.6rem] border-0 bg-white/70">
+              <Empty className="min-h-[320px] rounded-[1.6rem] border-0 bg-card/70">
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
                     <ShoppingBasket />
@@ -261,7 +262,7 @@ function CategoryPill({
   onClick,
 }: {
   active: boolean
-  category: string
+  category: MenuCategory
   count: number
   onClick: () => void
 }) {
@@ -270,10 +271,10 @@ function CategoryPill({
       type="button"
       onClick={onClick}
       className={`relative h-9 shrink-0 rounded-full border px-4 text-sm font-semibold transition max-[370px]:h-8 max-[370px]:px-3 max-[370px]:text-xs ${
-        active ? 'border-[#151515] bg-[#151515] text-white' : 'border-black/5 bg-white text-[#151515] shadow-sm'
+        active ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-card-foreground shadow-sm'
       }`}
     >
-      {category}
+      {category.name}
       {count > 0 ? <span className="ml-2 text-[11px]">{count}</span> : null}
     </button>
   )
@@ -286,7 +287,7 @@ function CategoryTile({
   onClick,
 }: {
   active: boolean
-  category: string
+  category: MenuCategory
   count: number
   onClick: () => void
 }) {
@@ -296,14 +297,17 @@ function CategoryTile({
       type="button"
       onClick={onClick}
       className={`relative flex min-h-[58px] w-full items-center justify-center rounded-none text-center transition max-[370px]:min-h-[54px] ${
-        active ? 'bg-red-50/70 text-red-500' : 'text-[#333] hover:bg-black/[0.025]'
+        active ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted/60'
       }`}
-      aria-label={category}
-      title={category}
+      aria-label={category.name}
+      title={category.name}
     >
-      <Icon className={`size-[21px] max-[370px]:size-5 ${active ? 'text-red-500' : 'text-[#1f1f1f]'}`} />
+      <Icon
+        className="size-[21px] max-[370px]:size-5"
+        style={{ color: active ? 'var(--primary)' : 'var(--foreground)' }}
+      />
       {count > 0 ? (
-        <Badge variant="destructive" className="absolute right-0.5 top-1 min-w-4 justify-center rounded-full px-1 text-[9px]">
+        <Badge className="absolute right-0.5 top-1 min-w-4 justify-center rounded-full px-1 text-[9px] shadow-sm ring-2 ring-background">
           {count}
         </Badge>
       ) : null}
@@ -311,13 +315,20 @@ function CategoryTile({
   )
 }
 
-function categoryIcon(category: string) {
-  const value = category.toLowerCase()
+function categoryIcon(category: MenuCategory) {
+  const key = category.iconKey?.toLowerCase()
+  if (key === 'soup') return Soup
+  if (key === 'coffee') return Coffee
+  if (key === 'drink') return CupSoda
+  if (key === 'cake') return CakeSlice
+  if (key === 'snack') return IceCreamBowl
+  if (key === 'leaf') return Leaf
+  const value = category.name.toLowerCase()
   if (value.includes('meal') || value.includes('main')) return Soup
   if (value.includes('coffee')) return Coffee
   if (value.includes('drink') || value.includes('juice')) return CupSoda
   if (value.includes('dessert') || value.includes('cake')) return CakeSlice
   if (value.includes('snack')) return IceCreamBowl
-  if (value.includes('salad')) return Leaf
+  if (value.includes('salad') || value.includes('vegetarian')) return Leaf
   return Grid2X2
 }

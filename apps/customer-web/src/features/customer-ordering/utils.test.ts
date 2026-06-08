@@ -2,6 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 import {
   CUSTOMER_ORDER_IDS_KEY,
   buildCartKey,
+  clearCustomerOrderIds,
   formatBirr,
   persistCustomerOrderIds,
   readCustomerOrderIds,
@@ -40,6 +41,15 @@ describe('customer ordering utilities', () => {
     expect(readCustomerOrderIds()[0]).toBe('order-0')
 
     localStorage.setItem(CUSTOMER_ORDER_IDS_KEY, '{bad json')
+    expect(readCustomerOrderIds()).toEqual([])
+  })
+
+  it('clears remembered customer order ids', () => {
+    persistCustomerOrderIds(['order-1'])
+
+    clearCustomerOrderIds()
+
+    expect(localStorage.getItem(CUSTOMER_ORDER_IDS_KEY)).toBeNull()
     expect(readCustomerOrderIds()).toEqual([])
   })
 

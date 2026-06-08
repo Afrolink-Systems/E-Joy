@@ -169,12 +169,12 @@ export function mapShopToForm(shop: ShopConfigRow): ShopSettingsFormState {
 
 export function serializeOverrides(
   overrides: Record<ThemeFieldKey, string>,
-): ShopThemeOverrides | undefined {
+): ShopThemeOverrides | null {
   const entries = Object.entries(overrides).flatMap(([key, value]) => {
     const trimmed = value.trim()
     return trimmed ? [[key, trimmed] as const] : []
   })
-  if (!entries.length) return undefined
+  if (!entries.length) return null
   return Object.fromEntries(entries) as ShopThemeOverrides
 }
 

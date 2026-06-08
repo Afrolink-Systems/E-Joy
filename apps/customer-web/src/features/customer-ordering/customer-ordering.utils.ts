@@ -1,11 +1,13 @@
 import { getOrderServiceHttpOrigin } from '../../lib/mockTelebirrRedirectUrl'
+import { CUSTOMER_ORDER_IDS_KEY } from '../../lib/customerLocalData'
 import type { CustomerTab } from './customer-ordering.types'
+
+export { CUSTOMER_ORDER_IDS_KEY }
 
 export const PLACEHOLDER_FOOD =
   'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=420&q=80'
 
 export const SPICE_OPTIONS = ['No spice', 'Mild', 'Medium', 'Extra spicy']
-export const CUSTOMER_ORDER_IDS_KEY = 'ejoy_customer_order_ids_v1'
 
 export function readCustomerOrderIds(): string[] {
   try {
@@ -21,6 +23,14 @@ export function readCustomerOrderIds(): string[] {
 
 export function persistCustomerOrderIds(ids: string[]): void {
   localStorage.setItem(CUSTOMER_ORDER_IDS_KEY, JSON.stringify(ids.slice(0, 50)))
+}
+
+export function clearCustomerOrderIds(): void {
+  try {
+    localStorage.removeItem(CUSTOMER_ORDER_IDS_KEY)
+  } catch {
+    /* ignore storage restrictions */
+  }
 }
 
 export function formatBirr(cents: number): string {

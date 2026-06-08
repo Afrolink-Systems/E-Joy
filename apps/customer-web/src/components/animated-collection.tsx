@@ -66,7 +66,7 @@ export function CollectionViewTabs({
   onChange: (value: CollectionViewMode) => void;
 }) {
   return (
-    <div className={cn("flex w-full min-w-0 rounded-[1.5rem] border border-black/5 bg-white/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]", className)}>
+    <div className={cn("flex w-full min-w-0 rounded-[1.5rem] border border-border bg-card/70 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]", className)}>
       <Tab active={value === "list"} onClick={() => onChange("list")} icon={List} label="List view" />
       <Tab active={value === "card"} onClick={() => onChange("card")} icon={Grid2X2} label="Card view" />
     </div>
@@ -103,11 +103,11 @@ export function AnimatedCollectionView({
           className={cn(
             "relative z-10 min-w-0 transition-all duration-300 ease-out",
             view === "list" &&
-              "grid min-h-[104px] grid-cols-[92px_minmax(0,1fr)] gap-2.5 rounded-[1.2rem] border border-black/5 bg-white/82 p-2 shadow-[0_10px_24px_rgba(20,20,20,0.055)] min-[431px]:min-h-[112px] min-[431px]:grid-cols-[100px_minmax(0,1fr)] min-[431px]:gap-3 min-[431px]:rounded-[1.35rem] min-[431px]:p-2.5 max-[370px]:min-h-[96px] max-[370px]:grid-cols-[78px_minmax(0,1fr)]",
+              "grid min-h-[104px] grid-cols-[92px_minmax(0,1fr)] gap-2.5 rounded-[1.2rem] border border-border bg-card/85 p-2 text-card-foreground shadow-[0_10px_24px_rgba(20,20,20,0.055)] min-[431px]:min-h-[112px] min-[431px]:grid-cols-[100px_minmax(0,1fr)] min-[431px]:gap-3 min-[431px]:rounded-[1.35rem] min-[431px]:p-2.5 max-[370px]:min-h-[96px] max-[370px]:grid-cols-[78px_minmax(0,1fr)]",
             view === "card" &&
-              "overflow-hidden rounded-[1.45rem] border border-black/5 bg-white/88 shadow-[0_14px_34px_rgba(20,20,20,0.08)]",
+              "overflow-hidden rounded-[1.45rem] border border-border bg-card/90 text-card-foreground shadow-[0_14px_34px_rgba(20,20,20,0.08)]",
             view === "pack" &&
-              "absolute left-1/2 top-10 h-[300px] w-[76%] max-w-[310px] -translate-x-1/2 overflow-hidden rounded-[2rem] border border-black/5 bg-white shadow-[0_24px_60px_rgba(20,20,20,0.16)]"
+              "absolute left-1/2 top-10 h-[300px] w-[76%] max-w-[310px] -translate-x-1/2 overflow-hidden rounded-[2rem] border border-border bg-card shadow-[0_24px_60px_rgba(20,20,20,0.16)]"
           )}
           style={view === "pack" ? packStyle(index, items.length) : undefined}
         >
@@ -117,7 +117,7 @@ export function AnimatedCollectionView({
             type="button"
             onClick={item.onOpen}
             className={cn(
-              "block overflow-hidden bg-neutral-100 text-left transition-all duration-300 ease-out",
+              "block overflow-hidden bg-muted text-left transition-all duration-300 ease-out",
               view === "list" && "size-[84px] rounded-[0.95rem] min-[431px]:size-[94px] min-[431px]:rounded-[1.05rem] max-[370px]:size-[72px]",
               view === "card" && "h-[112px] w-full",
               view === "pack" && "h-full w-full"
@@ -147,11 +147,11 @@ export function AnimatedCollectionView({
               )}
             >
               <div className={cn("min-w-0", view === "card" && "pr-8")}>
-                <h3 className="truncate text-[16px] font-black leading-tight text-[#141414] max-[370px]:text-[15px]">
+                <h3 className="truncate text-[16px] font-black leading-tight text-card-foreground max-[370px]:text-[15px]">
                   {item.title}
                 </h3>
                 {item.subtitle ? (
-                  <p className="mt-0.5 truncate text-xs font-semibold text-neutral-500 max-[370px]:text-[11px]">
+                  <p className="mt-0.5 truncate text-xs font-semibold text-muted-foreground max-[370px]:text-[11px]">
                     {item.subtitle}
                   </p>
                 ) : null}
@@ -232,13 +232,13 @@ function Tab({
       onClick={onClick}
       className={cn(
         "relative flex h-9 min-w-0 flex-1 items-center justify-center gap-1.5 rounded-full px-2 text-[12px] font-semibold uppercase transition-colors outline-none min-[431px]:h-10 min-[431px]:gap-2 min-[431px]:px-3 max-[370px]:text-[11px]",
-        active ? "text-white" : "text-neutral-600 hover:text-neutral-950"
+        active ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
       )}
     >
       {active ? (
         <motion.span
           layoutId="active-tab"
-          className="absolute inset-0 rounded-full bg-[#151515] shadow-[0_8px_18px_rgba(0,0,0,0.18)]"
+          className="absolute inset-0 rounded-full bg-primary shadow-[0_8px_18px_rgba(0,0,0,0.16)]"
           transition={{ type: "spring", stiffness: 350, damping: 30, mass: 1 }}
         />
       ) : null}

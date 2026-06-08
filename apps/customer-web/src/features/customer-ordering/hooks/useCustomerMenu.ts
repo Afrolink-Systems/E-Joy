@@ -6,7 +6,7 @@ import {
   getCustomerThemeVars,
   resolveCustomerThemePreset,
 } from '../../../lib/customerTheme'
-import type { MenuItem } from '../customer-ordering.types'
+import type { MenuCategory, MenuItem } from '../customer-ordering.types'
 
 type UseCustomerMenuParams = {
   hasTableSession: boolean
@@ -43,27 +43,43 @@ export function useCustomerMenu({
     [menuQuery.data?.shopMenu],
   )
 
-  const categories = useMemo(() => {
-    const values = menuRows.map((row) => row.category || 'Menu')
-    return ['All', ...Array.from(new Set(values))]
+  const categories = useMemo<MenuCategory[]>(() => {
+    const byName = new Map<string, MenuCategory>()
+    for (const row of menuRows) {
+      const name = row.categoryMeta.name
+      const current = byName.get(name)
+      const next: MenuCategory = {
+        id: row.categoryMeta.id ?? row.categoryId ?? current?.id,
+        name,
+        iconKey: row.categoryMeta.iconKey ?? current?.iconKey,
+        color: row.categoryMeta.color ?? current?.color,
+        sortOrder: row.categoryMeta.sortOrder ?? current?.sortOrder ?? 999,
+      }
+      byName.set(name, next)
+    }
+    const values = Array.from(byName.values()).sort((a, b) => {
+      const order = (a.sortOrder ?? 999) - (b.sortOrder ?? 999)
+      return order || a.name.localeCompare(b.name)
+    })
+    return [{ name: 'All', iconKey: 'grid', sortOrder: -1 }, ...values]
   }, [menuRows])
 
   const visibleRows = useMemo(() => {
     const query = search.trim().toLowerCase()
     return menuRows.filter((row) => {
       const inCategory =
-        selectedCategory === 'All' || row.category === selectedCategory
+        selectedCategory === 'All' || row.categoryMeta.name === selectedCategory
       const inSearch =
         !query ||
         row.name.toLowerCase().includes(query) ||
-        row.category.toLowerCase().includes(query)
+        row.categoryMeta.name.toLowerCase().includes(query)
       return inCategory && inSearch
     })
   }, [menuRows, search, selectedCategory])
 
   useEffect(() => {
     if (selectedCategory === 'All') return
-    if (!categories.includes(selectedCategory)) {
+    if (!categories.some((category) => category.name === selectedCategory)) {
       setSelectedCategory('All')
     }
   }, [categories, selectedCategory, setSelectedCategory])

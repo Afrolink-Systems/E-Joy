@@ -15,7 +15,7 @@ export const PRODUCT_SORT_OPTIONS: { label: string; value: ProductSortValue }[] 
 ]
 
 export function getProductCategories(rows: ProductRow[]) {
-  return [...new Set(rows.map((row) => row.category).filter(Boolean))].sort((a, b) => a.localeCompare(b))
+  return [...new Set(rows.map((row) => row.category.name).filter(Boolean))].sort((a, b) => a.localeCompare(b))
 }
 
 export function getFilteredProducts(rows: ProductRow[], controls: ProductTableControlState) {
@@ -25,9 +25,9 @@ export function getFilteredProducts(rows: ProductRow[], controls: ProductTableCo
     const matchesSearch =
       !query ||
       row.name.toLowerCase().includes(query) ||
-      row.category.toLowerCase().includes(query) ||
+      row.category.name.toLowerCase().includes(query) ||
       row.status.toLowerCase().includes(query)
-    const matchesCategory = controls.category === 'all' || row.category === controls.category
+    const matchesCategory = controls.category === 'all' || row.category.name === controls.category
     const matchesStatus = controls.status === 'all' || getStatusFilter(row) === controls.status
 
     return matchesSearch && matchesCategory && matchesStatus
@@ -40,9 +40,9 @@ export function getSortedProducts(rows: ProductRow[], sort: ProductSortValue) {
       case 'name-desc':
         return b.name.localeCompare(a.name)
       case 'category-asc':
-        return a.category.localeCompare(b.category)
+        return a.category.name.localeCompare(b.category.name)
       case 'category-desc':
-        return b.category.localeCompare(a.category)
+        return b.category.name.localeCompare(a.category.name)
       case 'price-asc':
         return a.unitPrice - b.unitPrice
       case 'price-desc':

@@ -127,11 +127,23 @@ describe('TelebirrService H5 C2B', () => {
         }),
       }),
     );
+    const preOrderBody = JSON.parse(
+      String(fetchMock.mock.calls[1]?.[1]?.body),
+    ) as { biz_content?: { title?: string } };
+    expect(preOrderBody.biz_content?.title).toBe('EJoy Order order1');
     expect(result.rawRequest).toContain('prepay_id=prepay-123');
     expect(result.toPayUrl).toContain(
       'https://telebirr.test/payment/web/paygate?',
     );
     expect(result.toPayUrl).toContain('&version=1.0&trade_type=Checkout');
+  });
+
+  it('sanitizes Telebirr text fields that reject special characters', () => {
+    const service = new TelebirrService();
+
+    expect(service.sanitizeTelebirrText('E-Joy #1: Order/Test')).toBe(
+      'EJoy 1 OrderTest',
+    );
   });
 
   it('maps Telebirr trade statuses', () => {

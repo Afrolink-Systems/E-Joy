@@ -1,8 +1,17 @@
 export type ProductFormState = {
   name: string
-  category: string
+  categoryId: string
   priceBirr: string
   imageUrl: string
+  active: boolean
+}
+
+export type CategoryFormState = {
+  id?: string
+  name: string
+  iconKey: string
+  color: string
+  sortOrder: string
   active: boolean
 }
 

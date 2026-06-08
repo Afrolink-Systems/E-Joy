@@ -50,7 +50,7 @@ export function StatusButton({
         className={cn(
           "relative h-[54px] w-full min-w-[140px] rounded-[1.05rem] px-6 text-base font-black transition-all duration-300 disabled:opacity-100",
           status === "idle"
-            ? "bg-[#151515] text-white shadow-[0_18px_32px_rgba(20,20,20,0.18)] hover:bg-[#202020]"
+            ? "bg-primary text-primary-foreground shadow-[0_18px_32px_rgba(20,20,20,0.18)] hover:bg-primary/90"
             : status === "error"
               ? "bg-red-50 text-red-600 hover:bg-red-50"
               : "cursor-not-allowed border-transparent bg-neutral-100 text-neutral-500 hover:bg-neutral-100",
@@ -76,7 +76,7 @@ export function StatusButton({
             className={cn(
               "relative flex size-6 items-center justify-center overflow-visible rounded-full ring-3 transition-all duration-200",
               status === "success"
-                ? "bg-[#151515] text-white ring-neutral-100"
+                ? "bg-primary text-primary-foreground ring-primary/10"
                 : status === "error"
                   ? "bg-red-500 text-white ring-red-50"
                   : "bg-neutral-100 text-neutral-500 ring-neutral-100",

@@ -5,10 +5,8 @@ import {
   DISABLE_BANNER,
   MARKETING,
 } from '../../../graphql/marketing'
-import type { Banner, Coupon } from '../marketing.types'
-
-const BANNER_IMAGE_URL =
-  'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=900&q=80'
+import { uploadPlatformBannerImage } from '../../../lib/upload'
+import type { Banner, Coupon, CreateBannerForm } from '../marketing.types'
 
 export function useMarketingPage() {
   const query = useQuery<{ platformCoupons: Coupon[]; banners: Banner[] }>(MARKETING)
@@ -39,10 +37,18 @@ export function useMarketingPage() {
     await query.refetch()
   }
 
-  async function quickBanner() {
-    const title = window.prompt('Banner title:')
-    if (!title) return
-    await createBanner({ variables: { input: { title, imageUrl: BANNER_IMAGE_URL, status: 'ACTIVE' } } })
+  async function createBannerWithUpload(input: CreateBannerForm) {
+    const imageUrl = await uploadPlatformBannerImage(input.imageFile)
+    await createBanner({
+      variables: {
+        input: {
+          title: input.title,
+          imageUrl,
+          linkUrl: input.linkUrl || undefined,
+          status: 'ACTIVE',
+        },
+      },
+    })
     await query.refetch()
   }
 
@@ -57,7 +63,7 @@ export function useMarketingPage() {
     banners,
     coupons,
     disableBannerAt,
-    quickBanner,
+    quickBanner: createBannerWithUpload,
     quickCoupon,
   }
 }

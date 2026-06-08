@@ -10,11 +10,11 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../../../components/ui/button'
-import { useTableSessionStore } from '../../../store/useTableSessionStore'
 
 type HomeScreenProps = {
   hasTableSession: boolean
   onContinue: () => void
+  onStartNewSession: (session: QrSession) => void
   shopName: string
   tableRef: string
 }
@@ -33,12 +33,12 @@ function getHomeShopName(shopName: string) {
 export function HomeScreen({
   hasTableSession,
   onContinue,
+  onStartNewSession,
   shopName,
   tableRef,
 }: HomeScreenProps) {
   const [scannerOpen, setScannerOpen] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
-  const setFromQrParams = useTableSessionStore((state) => state.setFromQrParams)
 
   const handleScan = (codes: IDetectedBarcode[]) => {
     const rawValue = codes[0]?.rawValue
@@ -50,7 +50,7 @@ export function HomeScreen({
       return
     }
 
-    setFromQrParams(session.shopId, session.table)
+    onStartNewSession(session)
     setScannerOpen(false)
     setScanError(null)
     toast.success(`Table ${session.table} selected.`)

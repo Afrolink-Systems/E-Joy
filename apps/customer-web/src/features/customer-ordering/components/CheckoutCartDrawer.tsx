@@ -2,7 +2,7 @@ import { ArrowLeft, CheckCircle2, CreditCard, ShoppingCart, Trash2, UtensilsCros
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { StatusButton, type StatusButtonStatus } from '../../../components/status-button'
-import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert'
+import { Alert, AlertTitle } from '../../../components/ui/alert'
 import { Button } from '../../../components/ui/button'
 import {
   Drawer,
@@ -21,7 +21,7 @@ import {
 import { InputGroup, InputGroupTextarea } from '../../../components/ui/input-group'
 import type { CartItem } from '../../../store/useCartStore'
 import type { CheckoutPhase } from '../hooks/useTelebirrCheckout'
-import type { CreatedOrderModel } from '../customer-ordering.types'
+import type { CreatedOrderModel, CustomerThemeStyle } from '../customer-ordering.types'
 import { buildCartKey, formatBirr } from '../customer-ordering.utils'
 import { QuantityStepper } from './QuantityStepper'
 
@@ -39,6 +39,8 @@ type CheckoutCartDrawerProps = {
   open: boolean
   removeItem: (id: string, remark?: string) => void
   setNote: (value: string) => void
+  themePreset: string
+  themeVars: CustomerThemeStyle
   totalPrice: number
   totalQuantity: number
 }
@@ -68,13 +70,17 @@ export function CheckoutCartDrawer(props: CheckoutCartDrawerProps) {
       }}
       direction="bottom"
     >
-      <DrawerContent className="mx-auto max-h-[91svh] w-full max-w-[480px] overflow-hidden rounded-t-[2rem] border-0 bg-[#f7f7f5] p-0 shadow-[0_-24px_70px_rgba(0,0,0,0.22)]">
+      <DrawerContent
+        className="mx-auto max-h-[91svh] w-full max-w-[480px] overflow-hidden rounded-t-[2rem] border-0 bg-background p-0 text-foreground shadow-[0_-24px_70px_rgba(0,0,0,0.22)]"
+        data-theme={props.themePreset}
+        style={props.themeVars}
+      >
         <DrawerHeader className="grid grid-cols-[44px_1fr_44px] items-center px-5 pb-3 pt-4 text-center">
           <Button type="button" variant="ghost" size="icon" className="size-11 rounded-full" aria-label="Back" disabled={locked} onClick={() => props.onOpenChange(false)}>
             <ArrowLeft />
           </Button>
           <div>
-            <DrawerTitle className="text-[22px] font-black text-[#151515]">Cart</DrawerTitle>
+            <DrawerTitle className="text-[22px] font-black text-foreground">Cart</DrawerTitle>
             <DrawerDescription>{props.totalQuantity} items selected</DrawerDescription>
           </div>
           <Button type="button" variant="ghost" size="icon" className="size-11 rounded-full" disabled={!props.cart.length || locked} onClick={props.onClear} aria-label="Clear cart">
@@ -83,18 +89,18 @@ export function CheckoutCartDrawer(props: CheckoutCartDrawerProps) {
         </DrawerHeader>
 
         <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-5">
-          <div className="mb-3 flex items-center gap-3 rounded-2xl border border-black/5 bg-white px-4 py-3">
-            <span className="grid size-9 place-items-center rounded-full bg-neutral-100">
+          <div className="mb-3 flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3 text-card-foreground">
+            <span className="grid size-9 place-items-center rounded-full bg-muted">
               <UtensilsCrossed className="size-5" />
             </span>
             <div>
-              <p className="text-[14px] font-black text-[#151515]">Dine-in order</p>
-              <p className="text-xs font-medium text-neutral-500">Your order is linked to this table.</p>
+              <p className="text-[14px] font-black">Dine-in order</p>
+              <p className="text-xs font-medium text-muted-foreground">Your order is linked to this table.</p>
             </div>
           </div>
 
           {props.cart.length === 0 ? (
-            <Empty className="min-h-[260px] rounded-[1.6rem] border-0 bg-white/80">
+            <Empty className="min-h-[260px] rounded-[1.6rem] border-0 bg-card/80">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <ShoppingCart />
@@ -104,13 +110,13 @@ export function CheckoutCartDrawer(props: CheckoutCartDrawerProps) {
               </EmptyHeader>
             </Empty>
           ) : (
-            <div className="overflow-hidden rounded-[1.35rem] border border-black/5 bg-white">
+            <div className="overflow-hidden rounded-[1.35rem] border border-border bg-card text-card-foreground">
               {props.cart.map((line, index) => (
-                <article key={buildCartKey(line.id, line.remark)} className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-4 ${index > 0 ? 'border-t border-black/5' : ''}`}>
+                <article key={buildCartKey(line.id, line.remark)} className={`grid grid-cols-[minmax(0,1fr)_auto] gap-3 p-4 ${index > 0 ? 'border-t border-border' : ''}`}>
                   <div className="min-w-0">
-                    <h3 className="truncate text-[16px] font-black text-[#151515]">{line.name}</h3>
-                    {line.remark ? <p className="mt-1 line-clamp-2 text-xs font-semibold text-neutral-500">{line.remark}</p> : null}
-                    <strong className="mt-2 block text-[18px] font-black text-[#151515]">{formatBirr(line.price)}</strong>
+                    <h3 className="truncate text-[16px] font-black">{line.name}</h3>
+                    {line.remark ? <p className="mt-1 line-clamp-2 text-xs font-semibold text-muted-foreground">{line.remark}</p> : null}
+                    <strong className="mt-2 block text-[18px] font-black">{formatBirr(line.price)}</strong>
                   </div>
                   <div className="flex flex-col items-end justify-between gap-3">
                     <Button
@@ -135,14 +141,14 @@ export function CheckoutCartDrawer(props: CheckoutCartDrawerProps) {
             </div>
           )}
 
-          <div className="mt-3 flex items-baseline justify-between rounded-[1.15rem] border border-black/5 bg-white px-4 py-5">
-            <span className="text-[16px] font-medium text-neutral-500">Total</span>
-            <strong className="text-[26px] font-black text-[#151515]">{formatBirr(props.totalPrice)}</strong>
+          <div className="mt-3 flex items-baseline justify-between rounded-[1.15rem] border border-border bg-card px-4 py-5 text-card-foreground">
+            <span className="text-[16px] font-medium text-muted-foreground">Total</span>
+            <strong className="text-[26px] font-black">{formatBirr(props.totalPrice)}</strong>
           </div>
 
           <label className="mt-3 block">
-            <span className="mb-2 block text-[13px] font-black text-[#151515]">Order note</span>
-            <InputGroup className="min-h-[88px] rounded-[1.15rem] border-black/5 bg-white">
+            <span className="mb-2 block text-[13px] font-black text-foreground">Order note</span>
+            <InputGroup className="min-h-[88px] rounded-[1.15rem] border-border bg-card">
               <InputGroupTextarea
                 maxLength={120}
                 value={props.note}
@@ -155,21 +161,15 @@ export function CheckoutCartDrawer(props: CheckoutCartDrawerProps) {
 
           {isWorking ? <PaymentProgress phase={props.checkoutPhase} /> : null}
           {props.lastOrder ? (
-            <Alert className="mt-3 rounded-2xl border-green-100 bg-green-50 text-green-700">
+            <Alert className="mt-3 rounded-2xl border-primary/20 bg-primary/10 text-primary">
               <CheckCircle2 />
               <AlertTitle>Last order: {props.lastOrder.orderNo}</AlertTitle>
-            </Alert>
-          ) : null}
-          {error ? (
-            <Alert variant="destructive" className="mt-3 rounded-2xl">
-              <AlertTitle>Checkout needs attention</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
         </div>
 
         <div className="grid grid-cols-[0.74fr_1.5fr] gap-3 px-5 pb-[calc(18px+env(safe-area-inset-bottom))] pt-4">
-          <Button type="button" variant="outline" className="h-[54px] rounded-[1.05rem] border-black/5 bg-white font-black" disabled={locked} onClick={() => props.onOpenChange(false)}>
+          <Button type="button" variant="outline" className="h-[54px] rounded-[1.05rem] border-border bg-card font-black" disabled={locked} onClick={() => props.onOpenChange(false)}>
             Continue
           </Button>
           <StatusButton
@@ -211,21 +211,21 @@ function PaymentProgress({ phase }: { phase: CheckoutPhase }) {
   const activeIndex = Math.max(0, steps.findIndex(([id]) => id === phase))
 
   return (
-    <div className="mt-3 rounded-[1.15rem] border border-black/5 bg-white px-4 py-4">
+    <div className="mt-3 rounded-[1.15rem] border border-border bg-card px-4 py-4 text-card-foreground">
       <div className="flex items-center gap-3">
-        <span className="grid size-9 place-items-center rounded-full bg-red-50 text-red-500">
+        <span className="grid size-9 place-items-center rounded-full bg-primary/10 text-primary">
           <CreditCard className="size-5" />
         </span>
         <div>
-          <p className="text-[14px] font-black text-[#151515]">Payment in progress</p>
-          <p className="text-xs font-medium text-neutral-500">Keep this sheet open while Telebirr starts.</p>
+          <p className="text-[14px] font-black">Payment in progress</p>
+          <p className="text-xs font-medium text-muted-foreground">Keep this sheet open while Telebirr starts.</p>
         </div>
       </div>
       <div className="mt-4 grid gap-2">
         {steps.map(([id, label], index) => (
           <div key={id} className="flex items-center gap-3 text-sm font-semibold">
-            <span className={`size-2.5 rounded-full ${index <= activeIndex ? 'bg-red-500' : 'bg-neutral-200'}`} />
-            <span className={index <= activeIndex ? 'text-[#151515]' : 'text-neutral-400'}>{label}</span>
+            <span className={`size-2.5 rounded-full ${index <= activeIndex ? 'bg-primary' : 'bg-muted'}`} />
+            <span className={index <= activeIndex ? 'text-card-foreground' : 'text-muted-foreground'}>{label}</span>
           </div>
         ))}
       </div>

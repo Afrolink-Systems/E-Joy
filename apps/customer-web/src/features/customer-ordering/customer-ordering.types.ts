@@ -4,6 +4,14 @@ import type { ShopMenuProduct } from '../../graphql/shopMenu'
 export type CustomerTab = 'home' | 'menu' | 'orders'
 export type MenuItem = ShopMenuProduct
 
+export type MenuCategory = {
+  id?: string
+  name: string
+  iconKey?: string
+  color?: string
+  sortOrder?: number
+}
+
 export type CreateOrderData = {
   createOrder?: {
     ok: boolean
@@ -22,4 +30,4 @@ export type CreatedOrderModel = NonNullable<
   NonNullable<CreateOrderData['createOrder']>['order']
 >
 
-export type CustomerThemeStyle = CSSProperties & Record<string, string>
+export type CustomerThemeStyle = CSSProperties & Record<`--${string}`, string>

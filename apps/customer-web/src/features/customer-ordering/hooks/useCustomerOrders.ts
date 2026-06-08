@@ -1,7 +1,11 @@
 import { useQuery } from '@apollo/client/react'
 import { useState } from 'react'
 import { GET_ORDERS_QUERY, type GetOrdersData } from '../../../graphql/getOrders'
-import { persistCustomerOrderIds, readCustomerOrderIds } from '../customer-ordering.utils'
+import {
+  clearCustomerOrderIds,
+  persistCustomerOrderIds,
+  readCustomerOrderIds,
+} from '../customer-ordering.utils'
 
 type UseCustomerOrdersParams = {
   hasTableSession: boolean
@@ -30,7 +34,13 @@ export function useCustomerOrders({ hasTableSession }: UseCustomerOrdersParams) 
     return nextOrderIds
   }
 
+  function clearRememberedOrders() {
+    clearCustomerOrderIds()
+    setCustomerOrderIds([])
+  }
+
   return {
+    clearRememberedOrders,
     orders: query.data?.getOrders ?? [],
     ordersLoading: query.loading,
     refetchOrders: query.refetch,

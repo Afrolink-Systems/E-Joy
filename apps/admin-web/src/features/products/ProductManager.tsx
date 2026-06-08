@@ -1,4 +1,5 @@
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert'
+import { CategoryFormDialog } from './components/CategoryFormDialog'
 import { ProductFormDialog } from './components/ProductFormDialog'
 import { ProductHeader } from './components/ProductHeader'
 import { ProductTable } from './components/ProductTable'
@@ -46,6 +47,8 @@ export function ProductManager() {
         onEdit={state.openEdit}
       />
       <ProductFormDialog
+        categories={state.categories}
+        categoriesLoading={state.categoriesLoading}
         form={formState.form}
         open={formState.modalOpen}
         saving={state.saving}
@@ -55,7 +58,17 @@ export function ProductManager() {
         onClose={state.closeModal}
         onFileUpload={(file) => void formState.handleFileUpload(file)}
         onFormChange={formState.setForm}
+        onOpenCreateCategory={state.categoryForm.openCreateCategory}
+        onOpenEditCategory={state.categoryForm.openEditCategory}
         onSubmit={state.onSubmit}
+      />
+      <CategoryFormDialog
+        form={state.categoryForm.form}
+        open={state.categoryForm.modalOpen}
+        saving={state.categoryForm.saving}
+        onClose={state.categoryForm.closeCategoryModal}
+        onFormChange={state.categoryForm.setForm}
+        onSubmit={state.categoryForm.onSubmit}
       />
     </div>
   )
