@@ -65,7 +65,7 @@ export type TelebirrNotifyPayload = {
   trans_end_time?: string;
   callback_info?: string;
   sign: string;
-  sign_type: 'SHA256WithRSA' | string;
+  sign_type: string;
 };
 
 export type TelebirrCheckoutResult = {

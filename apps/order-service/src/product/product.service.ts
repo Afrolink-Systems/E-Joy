@@ -32,16 +32,42 @@ type CategoryRow = {
   active: boolean;
 };
 
+type ProductRow = {
+  id: string;
+  shopId: string;
+  name: string;
+  categoryId: string;
+  categoryRef?: CategoryRow | null;
+  unitPrice: number;
+  imageUrl: string | null;
+  active: boolean;
+  status?: string;
+};
+
+type CategoryDelegate = {
+  findMany(args: unknown): Promise<CategoryRow[]>;
+  findFirst(args: unknown): Promise<CategoryRow | null>;
+  count(args: unknown): Promise<number>;
+  create(args: unknown): Promise<CategoryRow>;
+  update(args: unknown): Promise<CategoryRow>;
+};
+
+type ProductDelegate = {
+  findMany(args: unknown): Promise<ProductRow[]>;
+  create(args: unknown): Promise<ProductRow>;
+  updateMany(args: unknown): Promise<unknown>;
+};
+
 @Injectable()
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private categoryDelegate() {
-    return (this.prisma as unknown as { category: any }).category;
+  private categoryDelegate(): CategoryDelegate {
+    return (this.prisma as unknown as { category: CategoryDelegate }).category;
   }
 
-  private productDelegate() {
-    return (this.prisma as unknown as { product: any }).product;
+  private productDelegate(): ProductDelegate {
+    return (this.prisma as unknown as { product: ProductDelegate }).product;
   }
 
   private sanitizeCategoryName(name: string | undefined): string {
@@ -69,17 +95,7 @@ export class ProductService {
     };
   }
 
-  private toProductModel(row: {
-    id: string;
-    shopId: string;
-    name: string;
-    categoryId: string;
-    categoryRef?: CategoryRow | null;
-    unitPrice: number;
-    imageUrl: string | null;
-    active: boolean;
-    status?: string;
-  }): ProductModel {
+  private toProductModel(row: ProductRow): ProductModel {
     const st = (row.status ?? PS.ACTIVE) as ProductStatusModel;
     return {
       id: row.id,
@@ -172,7 +188,9 @@ export class ProductService {
         ...(input.color !== undefined
           ? { color: this.sanitizeColor(input.color) }
           : {}),
-        ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
+        ...(input.sortOrder !== undefined
+          ? { sortOrder: input.sortOrder }
+          : {}),
         ...(input.active !== undefined ? { active: input.active } : {}),
       },
     });
@@ -213,7 +231,7 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
       take: 500,
     });
-    return rows.map((row: unknown) => this.toProductModel(row as never));
+    return rows.map((row) => this.toProductModel(row));
   }
 
   /**

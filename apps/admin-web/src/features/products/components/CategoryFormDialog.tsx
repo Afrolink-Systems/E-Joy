@@ -14,16 +14,7 @@ import { Field, FieldContent, FieldGroup, FieldLabel } from '../../../components
 import { Input } from '../../../components/ui/input'
 import { NativeSelect, NativeSelectOption } from '../../../components/ui/native-select'
 import type { CategoryFormState } from '../products.types'
-
-export const CATEGORY_ICON_OPTIONS = [
-  { value: 'grid', label: 'Grid' },
-  { value: 'soup', label: 'Main dishes' },
-  { value: 'coffee', label: 'Coffee' },
-  { value: 'drink', label: 'Drinks' },
-  { value: 'cake', label: 'Dessert' },
-  { value: 'leaf', label: 'Vegetarian' },
-  { value: 'snack', label: 'Snacks' },
-]
+import { CATEGORY_ICON_OPTIONS } from './category-form-options'
 
 type CategoryFormDialogProps = {
   form: CategoryFormState

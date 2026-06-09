@@ -63,13 +63,13 @@ export class TelebirrService {
     const c = this.config();
     return Boolean(
       c.apiBase &&
-        c.webBaseUrl &&
-        c.fabricAppId &&
-        c.appSecret &&
-        c.merchantAppId &&
-        c.merchantCode &&
-        c.privateKeyPem &&
-        c.notifyUrl,
+      c.webBaseUrl &&
+      c.fabricAppId &&
+      c.appSecret &&
+      c.merchantAppId &&
+      c.merchantCode &&
+      c.privateKeyPem &&
+      c.notifyUrl,
     );
   }
 
@@ -187,13 +187,13 @@ export class TelebirrService {
     const res = await this.fetchTelebirr(
       `${c.apiBase}/payment/v1/merchant/preOrder`,
       {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-APP-Key': c.fabricAppId,
-        Authorization: fabricToken,
-      },
-      body: JSON.stringify(request),
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-APP-Key': c.fabricAppId,
+          Authorization: fabricToken,
+        },
+        body: JSON.stringify(request),
       },
     );
     const text = await res.text();
@@ -230,13 +230,13 @@ export class TelebirrService {
     const res = await this.fetchTelebirr(
       `${c.apiBase}/payment/v1/merchant/queryOrder`,
       {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-APP-Key': c.fabricAppId,
-        Authorization: fabricToken,
-      },
-      body: JSON.stringify(request),
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-APP-Key': c.fabricAppId,
+          Authorization: fabricToken,
+        },
+        body: JSON.stringify(request),
       },
     );
     const text = await res.text();
@@ -306,10 +306,17 @@ export class TelebirrService {
   buildSignatureBaseString(requestObject: Record<string, unknown>): string {
     const fields: Record<string, string> = {};
     for (const [key, value] of Object.entries(requestObject)) {
-      if (SIGN_EXCLUDED_FIELDS.has(key) || value === undefined || value === null) {
+      if (
+        SIGN_EXCLUDED_FIELDS.has(key) ||
+        value === undefined ||
+        value === null
+      ) {
         continue;
       }
-      fields[key] = String(value);
+      const signValue = toSignableString(value);
+      if (signValue !== undefined) {
+        fields[key] = signValue;
+      }
     }
     const bizContent = requestObject.biz_content;
     if (bizContent && typeof bizContent === 'object') {
@@ -323,7 +330,10 @@ export class TelebirrService {
         ) {
           continue;
         }
-        fields[key] = String(value);
+        const signValue = toSignableString(value);
+        if (signValue !== undefined) {
+          fields[key] = signValue;
+        }
       }
     }
     return Object.keys(fields)
@@ -367,7 +377,7 @@ export class TelebirrService {
     if (!publicKey) {
       return allowUnsigned;
     }
-    const signature = String(payload.sign ?? '');
+    const signature = toSignableString(payload.sign) ?? '';
     if (!signature) {
       return false;
     }
@@ -627,4 +637,13 @@ export class TelebirrService {
       return false;
     }
   }
+}
+
+function toSignableString(value: unknown): string | undefined {
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'bigint') {
+    return value.toString();
+  }
+  if (typeof value === 'boolean') return value ? 'true' : 'false';
+  return undefined;
 }

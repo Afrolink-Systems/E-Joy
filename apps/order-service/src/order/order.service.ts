@@ -1116,7 +1116,10 @@ export class OrderService {
             ? OrderState.PREPARING
             : OrderState.PAID;
           targetPaymentState = PaymentState.SUCCESS;
-        } else if (callbackFailed && order.state === OrderState.PENDING_PAYMENT) {
+        } else if (
+          callbackFailed &&
+          order.state === OrderState.PENDING_PAYMENT
+        ) {
           targetState = OrderState.PAYMENT_FAILED;
           targetPaymentState = PaymentState.FAILED;
         } else if (callbackState === PaymentState.PENDING) {

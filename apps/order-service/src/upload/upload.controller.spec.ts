@@ -3,9 +3,7 @@ import { UploadController } from './upload.controller';
 
 function pngFile(): Express.Multer.File {
   return {
-    buffer: Buffer.from([
-      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
-    ]),
+    buffer: Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
     mimetype: 'image/png',
     originalname: 'image.png',
   } as Express.Multer.File;
@@ -13,7 +11,9 @@ function pngFile(): Express.Multer.File {
 
 describe('UploadController', () => {
   const uploadService = {
-    uploadImage: jest.fn().mockResolvedValue({ secure_url: 'https://cdn.test/image.png' }),
+    uploadImage: jest
+      .fn()
+      .mockResolvedValue({ secure_url: 'https://cdn.test/image.png' }),
   };
   const rateLimit = {
     consume: jest.fn(),
@@ -43,10 +43,9 @@ describe('UploadController', () => {
       ),
     ).resolves.toEqual({ url: 'https://cdn.test/image.png' });
 
-    expect(uploadService.uploadImage).toHaveBeenCalledWith(
-      expect.anything(),
-      { folder: 'ejoy/shops/shop-1/products' },
-    );
+    expect(uploadService.uploadImage).toHaveBeenCalledWith(expect.anything(), {
+      folder: 'ejoy/shops/shop-1/products',
+    });
   });
 
   it('uploads merchant logos into the shop logo folder', async () => {
@@ -56,10 +55,9 @@ describe('UploadController', () => {
       'shop-logo',
     );
 
-    expect(uploadService.uploadImage).toHaveBeenCalledWith(
-      expect.anything(),
-      { folder: 'ejoy/shops/shop-1/logos' },
-    );
+    expect(uploadService.uploadImage).toHaveBeenCalledWith(expect.anything(), {
+      folder: 'ejoy/shops/shop-1/logos',
+    });
   });
 
   it('uploads platform banners into the platform banner folder', async () => {
@@ -69,10 +67,9 @@ describe('UploadController', () => {
       'platform-banner',
     );
 
-    expect(uploadService.uploadImage).toHaveBeenCalledWith(
-      expect.anything(),
-      { folder: 'ejoy/platform/banners' },
-    );
+    expect(uploadService.uploadImage).toHaveBeenCalledWith(expect.anything(), {
+      folder: 'ejoy/platform/banners',
+    });
   });
 
   it('rejects unknown upload purposes', async () => {

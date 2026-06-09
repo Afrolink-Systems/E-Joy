@@ -19,25 +19,29 @@ function buildService(overrides: Record<string, unknown> = {}) {
     ...((overrides.category as Record<string, unknown>) ?? {}),
   };
   const product = {
-    create: jest.fn().mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
-      id: 'prod_1',
-      shopId: data.shopId,
-      name: data.name,
-      categoryId: data.categoryId,
-      categoryRef: {
-        id: data.categoryId,
-        shopId: data.shopId,
-        name: 'Main',
-        iconKey: 'soup',
-        color: '#B45309',
-        sortOrder: 10,
-        active: true,
-      },
-      unitPrice: data.unitPrice,
-      imageUrl: data.imageUrl ?? null,
-      active: data.active,
-      status: 'ACTIVE',
-    })),
+    create: jest
+      .fn()
+      .mockImplementation(
+        async ({ data }: { data: Record<string, unknown> }) => ({
+          id: 'prod_1',
+          shopId: data.shopId,
+          name: data.name,
+          categoryId: data.categoryId,
+          categoryRef: {
+            id: data.categoryId,
+            shopId: data.shopId,
+            name: 'Main',
+            iconKey: 'soup',
+            color: '#B45309',
+            sortOrder: 10,
+            active: true,
+          },
+          unitPrice: data.unitPrice,
+          imageUrl: data.imageUrl ?? null,
+          active: data.active,
+          status: 'ACTIVE',
+        }),
+      ),
     findFirst: jest.fn().mockResolvedValue(null),
     findMany: jest.fn().mockResolvedValue([]),
     updateMany: jest.fn().mockResolvedValue({ count: 1 }),
@@ -103,7 +107,9 @@ describe('ProductService categories', () => {
         unitPrice: 900,
         active: true,
       }),
-    ).rejects.toThrow(new BadRequestException('categoryId is not valid for this shop'));
+    ).rejects.toThrow(
+      new BadRequestException('categoryId is not valid for this shop'),
+    );
   });
 
   it('requires categoryId when creating products', async () => {
