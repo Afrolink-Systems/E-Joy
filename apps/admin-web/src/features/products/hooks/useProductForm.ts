@@ -23,7 +23,7 @@ export function useProductForm() {
     setEditing(product)
     setForm({
       name: product.name,
-      category: product.category,
+      categoryId: product.categoryId,
       priceBirr: centsToBirrDisplay(product.unitPrice),
       imageUrl: product.imageUrl ?? '',
       active: product.active,
@@ -44,7 +44,7 @@ export function useProductForm() {
     setUploadError(null)
     setUploading(true)
     try {
-      const url = await uploadPublicImage(file)
+      const url = await uploadPublicImage(file, 'product')
       setForm((current) => ({ ...current, imageUrl: url }))
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed')

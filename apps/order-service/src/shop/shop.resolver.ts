@@ -6,9 +6,13 @@ import { ShopModel } from './shop.types';
 export class ShopResolver {
   constructor(private readonly prisma: PrismaService) {}
 
+  private shopDelegate(): ShopDelegate {
+    return (this.prisma as unknown as { shop: ShopDelegate }).shop;
+  }
+
   @Query(() => [ShopModel])
   async shops(): Promise<ShopModel[]> {
-    const rows: ShopRow[] = await (this.prisma.shop as any).findMany({
+    const rows = await this.shopDelegate().findMany({
       orderBy: { name: 'asc' },
       select: {
         id: true,
@@ -30,7 +34,7 @@ export class ShopResolver {
   async customerShop(
     @Args('shopId') shopId: string,
   ): Promise<ShopModel | null> {
-    const row = await (this.prisma.shop as any).findUnique({
+    const row = await this.shopDelegate().findUnique({
       where: { id: shopId },
       select: {
         id: true,
@@ -87,4 +91,9 @@ type ShopRow = {
   customerThemePreset: string | null;
   customerThemeOverridesJson: string | null;
   active: boolean;
+};
+
+type ShopDelegate = {
+  findMany(args: unknown): Promise<ShopRow[]>;
+  findUnique(args: unknown): Promise<ShopRow | null>;
 };

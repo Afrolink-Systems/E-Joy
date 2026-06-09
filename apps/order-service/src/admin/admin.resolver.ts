@@ -23,6 +23,7 @@ import {
   BannerModel,
   BannerStatusModel,
   BusinessReportModel,
+  CategoryModel,
   DashboardMetricsModel,
   ExportPayloadModel,
   ManagedShopModel,
@@ -48,6 +49,7 @@ import {
 } from './admin.types';
 import {
   CreateBannerInput,
+  CreateCategoryInput,
   ApproveShopApplicationInput,
   CreateShopApplicationInput,
   CreatePlatformCouponInput,
@@ -60,6 +62,7 @@ import {
   UpdatePrinterInput,
   UpdateStaffInput,
   UpdateManagedShopInput,
+  UpdateCategoryInput,
   UpdateShopPaymentConfigInput,
   UpdateShopInput,
 } from './admin.inputs';
@@ -446,15 +449,60 @@ export class AdminResolver {
   products(
     @Args('shopId', { type: () => String, nullable: true })
     shopId: string | undefined,
-    @Args('category', { type: () => String, nullable: true })
-    category: string | undefined,
+    @Args('categoryId', { type: () => String, nullable: true })
+    categoryId: string | undefined,
     @CurrentUserRole() role?: string,
     @CurrentUserScope() scope?: string[],
     @CurrentUserShopId() currentShopId?: string,
   ): Promise<ProductModel[]> {
     this.assertManagerAccess(role, scope, 'staff:read');
     const effectiveShopId = this.resolveShopOrThrow(shopId, currentShopId);
-    return this.adminService.products(effectiveShopId, category);
+    return this.adminService.products(effectiveShopId, categoryId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Query(() => [CategoryModel])
+  categories(
+    @Args('shopId', { type: () => String, nullable: true })
+    shopId: string | undefined,
+    @CurrentUserRole() role?: string,
+    @CurrentUserScope() scope?: string[],
+    @CurrentUserShopId() currentShopId?: string,
+  ): Promise<CategoryModel[]> {
+    this.assertManagerAccess(role, scope, 'staff:read');
+    const effectiveShopId = this.resolveShopOrThrow(shopId, currentShopId);
+    return this.adminService.categories(effectiveShopId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Mutation(() => CategoryModel)
+  createCategory(
+    @Args('shopId', { type: () => String, nullable: true })
+    shopId: string | undefined,
+    @Args('input') input: CreateCategoryInput,
+    @CurrentUserRole() role?: string,
+    @CurrentUserScope() scope?: string[],
+    @CurrentUserShopId() currentShopId?: string,
+  ): Promise<CategoryModel> {
+    this.assertManagerAccess(role, scope, 'staff:write');
+    const effectiveShopId = this.resolveShopOrThrow(shopId, currentShopId);
+    return this.adminService.createCategory(effectiveShopId, input);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Mutation(() => CategoryModel, { nullable: true })
+  updateCategory(
+    @Args('categoryId') categoryId: string,
+    @Args('shopId', { type: () => String, nullable: true })
+    shopId: string | undefined,
+    @Args('input') input: UpdateCategoryInput,
+    @CurrentUserRole() role?: string,
+    @CurrentUserScope() scope?: string[],
+    @CurrentUserShopId() currentShopId?: string,
+  ): Promise<CategoryModel | null> {
+    this.assertManagerAccess(role, scope, 'staff:write');
+    const effectiveShopId = this.resolveShopOrThrow(shopId, currentShopId);
+    return this.adminService.updateCategory(categoryId, effectiveShopId, input);
   }
 
   @UseGuards(JwtAuthGuard)

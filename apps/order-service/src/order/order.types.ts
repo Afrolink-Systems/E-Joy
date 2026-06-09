@@ -75,6 +75,24 @@ export class OrderError {
   message!: string;
 }
 
+@ObjectType()
+export class ShopMenuCategoryModel {
+  @Field(() => ID)
+  id!: string;
+
+  @Field()
+  name!: string;
+
+  @Field()
+  iconKey!: string;
+
+  @Field()
+  color!: string;
+
+  @Field(() => Int)
+  sortOrder!: number;
+}
+
 /** 顾客端门店菜单（公开查询，仅上架商品，单价为整数分） */
 @ObjectType()
 export class ShopMenuProductModel {
@@ -84,8 +102,11 @@ export class ShopMenuProductModel {
   @Field()
   name!: string;
 
-  @Field()
-  category!: string;
+  @Field(() => String)
+  categoryId!: string;
+
+  @Field(() => ShopMenuCategoryModel)
+  categoryMeta!: ShopMenuCategoryModel;
 
   @Field(() => Int)
   unitPrice!: number;

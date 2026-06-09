@@ -37,7 +37,7 @@ export function ProductTableRow({
         <span className="block max-w-[26rem] truncate text-sm font-semibold">{product.name}</span>
       </TableCell>
       <TableCell className="px-4 py-2 text-sm text-muted-foreground">
-        <span className="inline-flex max-w-64 truncate">{product.category}</span>
+        <span className="inline-flex max-w-64 truncate">{product.category.name}</span>
       </TableCell>
       <TableCell className="px-4 py-2 text-right text-sm tabular-nums">
         {centsToBirrDisplay(product.unitPrice)}

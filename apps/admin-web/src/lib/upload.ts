@@ -4,10 +4,16 @@ import { getAdminAccessToken } from './apollo'
 export const ORDER_SERVICE_ORIGIN =
   import.meta.env.VITE_ORDER_SERVICE_ORIGIN ?? 'http://localhost:9602'
 
+export type UploadPurpose = 'product' | 'shop-logo'
+
 /** Upload an image via order-service → Cloudinary; returns HTTPS URL (secure_url). */
-export async function uploadPublicImage(file: File): Promise<string> {
+export async function uploadPublicImage(
+  file: File,
+  purpose: UploadPurpose,
+): Promise<string> {
   const body = new FormData()
   body.append('file', file)
+  body.append('purpose', purpose)
   const token = getAdminAccessToken()
   const res = await fetch(`${ORDER_SERVICE_ORIGIN}/upload/image`, {
     method: 'POST',

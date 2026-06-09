@@ -62,6 +62,16 @@ type BannerModel {
   title: String!
 }
 
+type CategoryModel {
+  active: Boolean!
+  color: String!
+  iconKey: String!
+  id: ID!
+  name: String!
+  shopId: String!
+  sortOrder: Int!
+}
+
 enum BannerStatusInput {
   ACTIVE
   DISABLED
@@ -191,10 +201,18 @@ input CreatePrinterInput {
 
 input CreateProductInput {
   active: Boolean! = true
-  category: String!
+  categoryId: String!
   imageUrl: String
   name: String!
   unitPrice: Int!
+}
+
+input CreateCategoryInput {
+  active: Boolean! = true
+  color: String! = "#E8C49E"
+  iconKey: String! = "grid"
+  name: String!
+  sortOrder: Int
 }
 
 input CreateShopApplicationInput {
@@ -327,6 +345,7 @@ type Mutation {
   confirmPaymentCallback(input: ConfirmPaymentCallbackInput!): OrderPayload!
   createAddress(input: CreateAddressInput!): UserAddressModel!
   createBanner(input: CreateBannerInput!): BannerModel!
+  createCategory(input: CreateCategoryInput!, shopId: String): CategoryModel!
   createOrder(input: CreateOrderInput!): OrderPayload!
   createPlatformCoupon(input: CreatePlatformCouponInput!): PlatformCouponModel!
   createPrinter(input: CreatePrinterInput!, shopId: String): PrinterModel!
@@ -346,6 +365,7 @@ type Mutation {
   markStaffNotificationRead(input: MarkStaffNotificationReadInput!): Boolean!
   pushStaffAnnouncement(content: String!, shopId: String!, title: String!): StaffNotificationModel!
   rejectShopApplication(reason: String!, shopId: String!): Boolean!
+  reconcileTelebirrOrder(orderId: ID!): OrderPayload!
   reprintOrder(orderId: String!): StaffPrintJobModel!
   resetStaffPassword(shopId: String, staffId: String!, verification: SensitiveActionVerificationInput!): ResetPasswordPayload!
   resolveServiceTicket(input: ResolveServiceTicketInput!): ServiceTicketModel
@@ -355,6 +375,7 @@ type Mutation {
   submitShopApplication(input: CreateShopApplicationInput!): ShopApplicationModel!
   testPrinter(printerId: String!, shopId: String): Boolean!
   updateAddress(addressId: String!, input: UpdateAddressInput!): UserAddressModel!
+  updateCategory(categoryId: String!, input: UpdateCategoryInput!, shopId: String): CategoryModel
   updateDeliveryConfig(input: DeliveryConfigInput!, shopId: String!, verification: SensitiveActionVerificationInput!): ShopDeliveryConfigModel!
   updateManagedShop(input: UpdateManagedShopInput!, shopId: String!): Boolean!
   updateOrderStatus(id: String!, shopId: String, status: OrderStatus!): MerchantDispatchOrder!
@@ -599,7 +620,8 @@ enum ProductStatusModel {
 
 type ProductModel {
   active: Boolean!
-  category: String!
+  category: CategoryModel!
+  categoryId: String!
   id: ID!
   imageUrl: String
   name: String!
@@ -624,6 +646,7 @@ type Query {
   banners(status: BannerStatusModel): [BannerModel!]!
   businessReport(range: ReportRangeInput!, shopId: String): BusinessReportModel!
   checkDelivery(address: AddressInput!, shopId: String!): DeliveryCheckResultModel!
+  categories(shopId: String): [CategoryModel!]!
   deliveryConfig(shopId: String!): ShopDeliveryConfigModel!
   deliveryOrders(filters: DeliveryOrderFilterInput, shopId: String!): [OrderModel!]!
   dependencyHealth: DependencyHealthModel!
@@ -649,7 +672,7 @@ type Query {
   platformCoupons(status: PlatformCouponStatusModel): [PlatformCouponModel!]!
   printJobs(shopId: String): [PrintJobModel!]!
   printers(shopId: String): [PrinterModel!]!
-  products(category: String, shopId: String): [ProductModel!]!
+  products(categoryId: String, shopId: String): [ProductModel!]!
   promotionStatsByStaff(range: ReportRangeInput!, shopId: String): [PromotionStatsByStaffModel!]!
   serviceTicketFeedVersion(shopId: String): String!
   serviceTickets(shopId: String): [ServiceTicketModel!]!
@@ -745,11 +768,20 @@ type ShopDeliveryConfigModel {
 }
 
 type ShopMenuProductModel {
-  category: String!
+  categoryId: String!
+  categoryMeta: ShopMenuCategoryModel!
   id: ID!
   imageUrl: String
   name: String!
   unitPrice: Int!
+}
+
+type ShopMenuCategoryModel {
+  color: String!
+  iconKey: String!
+  id: ID!
+  name: String!
+  sortOrder: Int!
 }
 
 type StaffModel {
@@ -921,10 +953,18 @@ input UpdatePrinterInput {
 
 input UpdateProductInput {
   active: Boolean
-  category: String
+  categoryId: String
   imageUrl: String
   name: String
   unitPrice: Float
+}
+
+input UpdateCategoryInput {
+  active: Boolean
+  color: String
+  iconKey: String
+  name: String
+  sortOrder: Int
 }
 
 input UpdateServiceTicketStatusInput {

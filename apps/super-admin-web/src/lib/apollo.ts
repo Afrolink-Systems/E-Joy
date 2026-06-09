@@ -11,6 +11,10 @@ export function setSuperAdminAccessToken(token: string) {
   superAdminAccessToken = token
 }
 
+export function getSuperAdminAccessToken() {
+  return superAdminAccessToken
+}
+
 export function clearSuperAdminAccessToken() {
   superAdminAccessToken = ''
 }

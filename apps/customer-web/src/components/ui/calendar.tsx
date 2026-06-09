@@ -1,16 +1,49 @@
-// @ts-nocheck
 import * as React from "react"
 import {
   DayPicker,
   getDefaultClassNames,
-  type DayButton,
-  type Locale,
 } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { Button, buttonVariants } from "@/components/ui/button"
 import { HugeiconsIcon } from "@hugeicons/react"
 import { ArrowLeftIcon, ArrowRightIcon, ArrowDownIcon } from "@hugeicons/core-free-icons"
+
+type DayPickerPublicProps = React.ComponentProps<typeof DayPicker>
+
+type CalendarProps = Omit<
+  DayPickerPublicProps,
+  "className" | "classNames" | "locale" | "formatters" | "components"
+> & {
+  className?: string
+  classNames?: Record<string, string | undefined>
+  locale?: { code?: string }
+  formatters?: Record<string, unknown>
+  components?: Record<string, unknown>
+  buttonVariant?: React.ComponentProps<typeof Button>["variant"]
+}
+
+type CalendarLocale = CalendarProps["locale"]
+
+type CalendarRootProps = React.HTMLAttributes<HTMLDivElement> & {
+  rootRef?: React.Ref<HTMLDivElement>
+}
+
+type CalendarChevronProps = {
+  className?: string
+  orientation?: "up" | "down" | "left" | "right"
+  size?: number
+  disabled?: boolean
+}
+
+type CalendarDayButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+  day: { date: Date }
+  modifiers: Record<string, boolean | undefined>
+}
+
+type CalendarWeekNumberProps = React.ThHTMLAttributes<HTMLTableCellElement> & {
+  week?: unknown
+}
 
 function Calendar({
   className,
@@ -22,10 +55,13 @@ function Calendar({
   formatters,
   components,
   ...props
-}: React.ComponentProps<typeof DayPicker> & {
-  buttonVariant?: React.ComponentProps<typeof Button>["variant"]
-}) {
+}: CalendarProps) {
   const defaultClassNames = getDefaultClassNames()
+  const calendarFormatters = {
+    formatMonthDropdown: (date: Date) =>
+      date.toLocaleString(locale?.code, { month: "short" }),
+    ...(formatters ?? {}),
+  } as DayPickerPublicProps["formatters"]
 
   return (
     <DayPicker
@@ -38,11 +74,7 @@ function Calendar({
       )}
       captionLayout={captionLayout}
       locale={locale}
-      formatters={{
-        formatMonthDropdown: (date) =>
-          date.toLocaleString(locale?.code, { month: "short" }),
-        ...formatters,
-      }}
+      formatters={calendarFormatters}
       classNames={{
         root: cn("w-fit", defaultClassNames.root),
         months: cn(
@@ -131,10 +163,10 @@ function Calendar({
           defaultClassNames.disabled
         ),
         hidden: cn("invisible", defaultClassNames.hidden),
-        ...classNames,
-      }}
+        ...(classNames ?? {}),
+      } as DayPickerPublicProps["classNames"]}
       components={{
-        Root: ({ className, rootRef, ...props }) => {
+        Root: ({ className, rootRef, ...props }: CalendarRootProps) => {
           return (
             <div
               data-slot="calendar"
@@ -144,7 +176,7 @@ function Calendar({
             />
           )
         },
-        Chevron: ({ className, orientation, ...props }) => {
+        Chevron: ({ className, orientation, ...props }: CalendarChevronProps) => {
           if (orientation === "left") {
             return (
               <HugeiconsIcon icon={ArrowLeftIcon} strokeWidth={2} className={cn("size-4", className)} {...props} />
@@ -161,10 +193,10 @@ function Calendar({
             <HugeiconsIcon icon={ArrowDownIcon} strokeWidth={2} className={cn("size-4", className)} {...props} />
           )
         },
-        DayButton: ({ ...props }) => (
+        DayButton: (props: CalendarDayButtonProps) => (
           <CalendarDayButton locale={locale} {...props} />
         ),
-        WeekNumber: ({ children, ...props }) => {
+        WeekNumber: ({ children, ...props }: CalendarWeekNumberProps) => {
           return (
             <td {...props}>
               <div className="flex size-(--cell-size) items-center justify-center text-center">
@@ -173,8 +205,8 @@ function Calendar({
             </td>
           )
         },
-        ...components,
-      }}
+        ...(components ?? {}),
+      } as DayPickerPublicProps["components"]}
       {...props}
     />
   )
@@ -186,7 +218,7 @@ function CalendarDayButton({
   modifiers,
   locale,
   ...props
-}: React.ComponentProps<typeof DayButton> & { locale?: Partial<Locale> }) {
+}: CalendarDayButtonProps & { locale?: CalendarLocale }) {
   const defaultClassNames = getDefaultClassNames()
 
   const ref = React.useRef<HTMLButtonElement>(null)

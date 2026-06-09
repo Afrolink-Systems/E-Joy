@@ -10,7 +10,7 @@ export function MarketingPage() {
       <CouponList coupons={page.coupons} onCreate={() => void page.quickCoupon()} />
       <BannerList
         banners={page.banners}
-        onCreate={() => void page.quickBanner()}
+        onCreate={page.quickBanner}
         onDisable={(index) => void page.disableBannerAt(index)}
       />
     </div>

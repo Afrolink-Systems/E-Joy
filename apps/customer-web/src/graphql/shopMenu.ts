@@ -6,7 +6,14 @@ export const SHOP_MENU = gql`
     shopMenu(shopId: $shopId) {
       id
       name
-      category
+      categoryId
+      categoryMeta {
+        id
+        name
+        iconKey
+        color
+        sortOrder
+      }
       unitPrice
       imageUrl
     }
@@ -16,7 +23,14 @@ export const SHOP_MENU = gql`
 export type ShopMenuProduct = {
   id: string
   name: string
-  category: string
+  categoryId: string
+  categoryMeta: {
+    id: string
+    name: string
+    iconKey: string
+    color: string
+    sortOrder: number
+  }
   unitPrice: number
   imageUrl?: string | null
 }

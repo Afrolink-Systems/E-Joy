@@ -3,7 +3,7 @@ import type { ProductFormState } from './products.types'
 export function emptyProductForm(): ProductFormState {
   return {
     name: '',
-    category: '',
+    categoryId: '',
     priceBirr: '',
     imageUrl: '',
     active: true,
