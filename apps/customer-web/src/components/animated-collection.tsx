@@ -20,7 +20,7 @@ export interface AnimatedCollectionItem {
   subtitle?: string;
   idNumber?: string;
   image: string;
-  icon?: any;
+  icon?: React.ComponentType<{ className?: string }>;
   meta?: React.ReactNode;
   action?: React.ReactNode;
   onOpen?: () => void;
@@ -32,7 +32,7 @@ interface CollectionItem {
   subtitle: string;
   idNumber: string;
   image: string;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
 }
 
 const ITEMS: CollectionItem[] = [

@@ -291,7 +291,6 @@ function CategoryTile({
   count: number
   onClick: () => void
 }) {
-  const Icon = categoryIcon(category)
   return (
     <button
       type="button"
@@ -302,10 +301,7 @@ function CategoryTile({
       aria-label={category.name}
       title={category.name}
     >
-      <Icon
-        className="size-[21px] max-[370px]:size-5"
-        style={{ color: active ? 'var(--primary)' : 'var(--foreground)' }}
-      />
+      {renderCategoryIcon(category, active)}
       {count > 0 ? (
         <Badge className="absolute right-0.5 top-1 min-w-4 justify-center rounded-full px-1 text-[9px] shadow-sm ring-2 ring-background">
           {count}
@@ -315,20 +311,22 @@ function CategoryTile({
   )
 }
 
-function categoryIcon(category: MenuCategory) {
+function renderCategoryIcon(category: MenuCategory, active: boolean) {
+  const className = 'size-[21px] max-[370px]:size-5'
+  const style = { color: active ? 'var(--primary)' : 'var(--foreground)' }
   const key = category.iconKey?.toLowerCase()
-  if (key === 'soup') return Soup
-  if (key === 'coffee') return Coffee
-  if (key === 'drink') return CupSoda
-  if (key === 'cake') return CakeSlice
-  if (key === 'snack') return IceCreamBowl
-  if (key === 'leaf') return Leaf
+  if (key === 'soup') return <Soup className={className} style={style} />
+  if (key === 'coffee') return <Coffee className={className} style={style} />
+  if (key === 'drink') return <CupSoda className={className} style={style} />
+  if (key === 'cake') return <CakeSlice className={className} style={style} />
+  if (key === 'snack') return <IceCreamBowl className={className} style={style} />
+  if (key === 'leaf') return <Leaf className={className} style={style} />
   const value = category.name.toLowerCase()
-  if (value.includes('meal') || value.includes('main')) return Soup
-  if (value.includes('coffee')) return Coffee
-  if (value.includes('drink') || value.includes('juice')) return CupSoda
-  if (value.includes('dessert') || value.includes('cake')) return CakeSlice
-  if (value.includes('snack')) return IceCreamBowl
-  if (value.includes('salad') || value.includes('vegetarian')) return Leaf
-  return Grid2X2
+  if (value.includes('meal') || value.includes('main')) return <Soup className={className} style={style} />
+  if (value.includes('coffee')) return <Coffee className={className} style={style} />
+  if (value.includes('drink') || value.includes('juice')) return <CupSoda className={className} style={style} />
+  if (value.includes('dessert') || value.includes('cake')) return <CakeSlice className={className} style={style} />
+  if (value.includes('snack')) return <IceCreamBowl className={className} style={style} />
+  if (value.includes('salad') || value.includes('vegetarian')) return <Leaf className={className} style={style} />
+  return <Grid2X2 className={className} style={style} />
 }
