@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState } from 'react'
+import { clearPersistedCustomerOrderingData } from '../lib/customerLocalData'
 import { readTableSessionFromLocalStorage, useTableSessionStore } from '../store/useTableSessionStore'
 
 export interface TableSession {
@@ -20,6 +21,7 @@ function peekTableSession(enabled: boolean): PeekResult {
   const urlShopId = params.get('shopId')?.trim() ?? ''
   const urlTable = params.get('table')?.trim() ?? ''
   if (urlShopId && urlTable) {
+    clearPersistedCustomerOrderingData()
     return {
       session: { shopId: urlShopId, tableNumber: urlTable },
       fromUrl: true,

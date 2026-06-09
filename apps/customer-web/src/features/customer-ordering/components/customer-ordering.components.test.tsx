@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { toast } from 'sonner'
 import type { CartItem } from '../../../store/useCartStore'
 import type { MenuItem } from '../customer-ordering.types'
 import { CheckoutCartDrawer } from './CheckoutCartDrawer'
@@ -18,6 +19,7 @@ vi.mock('../../../lib/mockTelebirrRedirectUrl', () => ({
 }))
 
 const baseCartProps = {
+  checkoutPhase: 'idle' as const,
   checkoutLoading: false,
   deleteItem: vi.fn(),
   incrementItem: vi.fn(),
@@ -27,6 +29,8 @@ const baseCartProps = {
   onOpenChange: vi.fn(),
   removeItem: vi.fn(),
   setNote: vi.fn(),
+  themePreset: 'ejoy-default',
+  themeVars: {},
 }
 
 describe('customer ordering components', () => {
@@ -48,7 +52,14 @@ describe('customer ordering components', () => {
     const item: MenuItem = {
       id: 'p1',
       name: 'Chicken tibs',
-      category: 'Main',
+      categoryId: 'cat_main',
+      categoryMeta: {
+        id: 'cat_main',
+        name: 'Main',
+        iconKey: 'soup',
+        color: '#B85C38',
+        sortOrder: 10,
+      },
       unitPrice: 1250,
       imageUrl: 'https://cdn.example.com/tibs.jpg',
     }
@@ -79,7 +90,7 @@ describe('customer ordering components', () => {
     expect(screen.getByRole('button', { name: 'Pay with Telebirr' })).toBeDisabled()
   })
 
-  it('shows checkout errors without clearing the cart', async () => {
+  it('shows checkout errors with toast without clearing the cart', async () => {
     const cart: CartItem[] = [{ id: 'p1', name: 'Chicken tibs', price: 1250, quantity: 1 }]
     const onPay = vi.fn().mockRejectedValue(new Error('Order service unavailable'))
 
@@ -97,9 +108,9 @@ describe('customer ordering components', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Pay with Telebirr' }))
 
     await waitFor(() => {
-      expect(screen.getByText('Checkout failed')).toBeInTheDocument()
-      expect(screen.getByText('Order service unavailable')).toBeInTheDocument()
+      expect(toast.error).toHaveBeenCalledWith('Order service unavailable')
     })
+    expect(screen.queryByText('Checkout needs attention')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Chicken tibs' })).toBeInTheDocument()
   })
 })

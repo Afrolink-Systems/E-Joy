@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   ForbiddenException,
   Post,
@@ -14,6 +15,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RateLimitService } from '../auth/rate-limit.service';
 import { AppLoggerService } from '../ops/app-logger.service';
 import { UploadService } from './upload.service';
+import type { UploadPurpose } from './upload.service';
 
 const imageUpload = FileInterceptor('file', {
   storage: memoryStorage(),
@@ -25,10 +27,17 @@ type UploadRequest = {
     role?: string;
     scope?: string[];
     id?: string;
+    shopId?: string;
   };
   headers?: Record<string, string | string[] | undefined>;
   ip?: string;
 };
+
+const UPLOAD_PURPOSES = new Set<UploadPurpose>([
+  'product',
+  'shop-logo',
+  'platform-banner',
+]);
 
 /**
  * Merchant-authenticated REST upload (CORS-enabled for admin-web).
@@ -55,14 +64,51 @@ export class UploadController {
     throw new ForbiddenException('You do not have permission to upload images');
   }
 
+  private resolveUploadTarget(
+    purposeRaw: string | undefined,
+    req: UploadRequest,
+  ): { purpose: UploadPurpose; folder: string } {
+    const purpose = purposeRaw?.trim() as UploadPurpose | undefined;
+    if (!purpose || !UPLOAD_PURPOSES.has(purpose)) {
+      throw new BadRequestException(
+        'purpose must be one of: product, shop-logo, platform-banner',
+      );
+    }
+
+    const role = req.user?.role?.toLowerCase();
+    const root = this.uploadRootFolder();
+    if (purpose === 'platform-banner') {
+      if (role !== 'platform_admin') {
+        throw new ForbiddenException(
+          'Only platform admins can upload platform banners',
+        );
+      }
+      return { purpose, folder: `${root}/platform/banners` };
+    }
+
+    const shopId = req.user?.shopId?.trim();
+    if (!shopId) {
+      throw new ForbiddenException('Shop-bound uploads require a shop session');
+    }
+    return {
+      purpose,
+      folder:
+        purpose === 'shop-logo'
+          ? `${root}/shops/${this.safePathSegment(shopId)}/logos`
+          : `${root}/shops/${this.safePathSegment(shopId)}/products`,
+    };
+  }
+
   @Post('image')
   @UseGuards(JwtAuthGuard)
   @UseInterceptors(imageUpload)
   async uploadImage(
     @UploadedFile() file: Express.Multer.File | undefined,
     @Req() req: UploadRequest,
+    @Body('purpose') purposeRaw?: string,
   ) {
     this.assertCanUpload(req);
+    const target = this.resolveUploadTarget(purposeRaw, req);
     this.rateLimit.consume({
       key: `${this.rateLimit.getClientIp(req)}:${req.user?.id ?? 'unknown'}`,
       label: 'upload_image',
@@ -77,8 +123,20 @@ export class UploadController {
       throw new BadRequestException('file is required');
     }
     this.assertSafeImage(file);
-    const response = await this.uploadService.uploadImage(file);
+    const response = await this.uploadService.uploadImage(file, {
+      folder: target.folder,
+    });
     return { url: response.secure_url };
+  }
+
+  private uploadRootFolder(): string {
+    const configured = process.env.CLOUDINARY_UPLOAD_FOLDER?.trim();
+    const root = configured || 'ejoy';
+    return root.replace(/^\/+|\/+$/g, '') || 'ejoy';
+  }
+
+  private safePathSegment(value: string): string {
+    return value.replace(/[^a-zA-Z0-9_-]/g, '-');
   }
 
   private assertSafeImage(file: Express.Multer.File): void {

@@ -36,6 +36,10 @@ describe('shop settings utils', () => {
     expect(serializeOverrides(overrides)).toEqual({ primary: '#111111' })
   })
 
+  it('serializes empty theme overrides as null so saved colors can be cleared', () => {
+    expect(serializeOverrides(emptyThemeOverrides())).toBeNull()
+  })
+
   it('normalizes invalid color picker values', () => {
     expect(normalizeColorValue('not-a-color')).toBe('#d29a31')
     expect(normalizeColorValue('#123abc')).toBe('#123abc')

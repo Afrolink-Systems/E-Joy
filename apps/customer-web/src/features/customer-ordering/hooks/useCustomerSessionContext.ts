@@ -5,15 +5,13 @@ import {
 } from '../../../store/useTableSessionStore'
 
 export function useCustomerSessionContext() {
-  const initialSession = useTableSession(true)
+  useTableSession(true)
   const cachedSession = readTableSessionFromLocalStorage()
   const sessionShopId = useTableSessionStore((s) => s.sessionShopId)
   const sessionTableRef = useTableSessionStore((s) => s.sessionTableRef)
   const clearSession = useTableSessionStore((s) => s.clearSession)
-  const shopId =
-    initialSession?.shopId ?? sessionShopId ?? cachedSession.shopId ?? ''
-  const tableRef =
-    initialSession?.tableNumber ?? sessionTableRef ?? cachedSession.table ?? ''
+  const shopId = sessionShopId ?? cachedSession.shopId ?? ''
+  const tableRef = sessionTableRef ?? cachedSession.table ?? ''
 
   return {
     clearSession,

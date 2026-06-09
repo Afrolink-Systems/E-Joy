@@ -39,6 +39,56 @@ async function main() {
     },
   });
 
+  const categorySeeds = [
+    {
+      name: 'Popular',
+      iconKey: 'grid',
+      color: '#D9A441',
+      sortOrder: 10,
+    },
+    {
+      name: 'Main',
+      iconKey: 'soup',
+      color: '#B85C38',
+      sortOrder: 20,
+    },
+    {
+      name: 'Vegetarian',
+      iconKey: 'leaf',
+      color: '#2F7D4B',
+      sortOrder: 30,
+    },
+    {
+      name: 'Breakfast',
+      iconKey: 'coffee',
+      color: '#B7791F',
+      sortOrder: 40,
+    },
+  ];
+
+  const categoriesByName = new Map<string, { id: string; name: string }>();
+  for (const category of categorySeeds) {
+    const row = await prisma.category.upsert({
+      where: { shopId_name: { shopId: shop.id, name: category.name } },
+      update: {
+        iconKey: category.iconKey,
+        color: category.color,
+        sortOrder: category.sortOrder,
+        active: true,
+      },
+      create: {
+        shopId: shop.id,
+        name: category.name,
+        iconKey: category.iconKey,
+        color: category.color,
+        sortOrder: category.sortOrder,
+        active: true,
+      },
+      select: { id: true, name: true },
+    });
+    categoriesByName.set(row.name, row);
+  }
+
   const productSeeds = [
     { name: 'Kitfo', unitPrice: 42000, category: 'Popular' },
     { name: 'Tibs', unitPrice: 38000, category: 'Main' },
@@ -50,14 +100,24 @@ async function main() {
       where: { shopId: shop.id, name: product.name },
       select: { id: true },
     });
+    const category = categoriesByName.get(product.category);
+    if (!category) {
+      throw new Error(`Missing category seed for ${product.category}`);
+    }
+    const productData = {
+      name: product.name,
+      unitPrice: product.unitPrice,
+      categoryId: category.id,
+      active: true,
+    };
     if (existing) {
       await prisma.product.update({
         where: { id: existing.id },
-        data: { ...product, active: true },
+        data: productData,
       });
     } else {
       await prisma.product.create({
-        data: { shopId: shop.id, ...product, active: true },
+        data: { shopId: shop.id, ...productData },
       });
     }
   }

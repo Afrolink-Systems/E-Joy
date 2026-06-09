@@ -6,6 +6,8 @@ import {
   sign as cryptoSign,
   timingSafeEqual,
 } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { request as httpsRequest } from 'node:https';
 import type {
   FabricTokenResponse,
   TelebirrCheckoutResult,
@@ -41,6 +43,15 @@ type TelebirrConfig = {
   notifyUrl: string;
   returnUrl: string;
   timeoutExpress: string;
+  caCertPath: string;
+  allowInvalidTlsCert: boolean;
+  debugRequests: boolean;
+};
+
+type TelebirrHttpResponse = {
+  ok: boolean;
+  status: number;
+  text: () => Promise<string>;
 };
 
 @Injectable()
@@ -100,6 +111,13 @@ export class TelebirrService {
         process.env.TELEBIRR_NOTIFY_URL?.trim() ??
         '',
       timeoutExpress: process.env.TELEBIRR_ORDER_TIMEOUT ?? '120m',
+      caCertPath: process.env.TELEBIRR_CA_CERT_PATH?.trim() ?? '',
+      allowInvalidTlsCert:
+        process.env.NODE_ENV !== 'production' &&
+        process.env.TELEBIRR_TLS_ALLOW_INVALID_CERT === 'true',
+      debugRequests:
+        process.env.NODE_ENV !== 'production' &&
+        process.env.TELEBIRR_DEBUG_REQUESTS === 'true',
     };
   }
 
@@ -151,7 +169,7 @@ export class TelebirrService {
     }
     const c = this.config();
     const fabricToken = await this.applyFabricToken();
-    const title = `E-Joy Order ${orderId}`;
+    const title = this.sanitizeTelebirrText(`EJoy Order ${orderId}`);
     const totalAmount = (totalAmountMinor / 100).toFixed(2);
     const bizContent: Record<string, string> = {
       notify_url: c.notifyUrl,
@@ -165,6 +183,7 @@ export class TelebirrService {
       timeout_express: c.timeoutExpress,
     };
     const request = this.buildSignedRequest('payment.preorder', bizContent);
+    this.logPreOrderDebug(c, orderId, title, totalAmount);
     const res = await this.fetchTelebirr(
       `${c.apiBase}/payment/v1/merchant/preOrder`,
       {
@@ -172,7 +191,7 @@ export class TelebirrService {
       headers: {
         'Content-Type': 'application/json',
         'X-APP-Key': c.fabricAppId,
-        Authorization: this.formatBearerToken(fabricToken),
+        Authorization: fabricToken,
       },
       body: JSON.stringify(request),
       },
@@ -215,7 +234,7 @@ export class TelebirrService {
       headers: {
         'Content-Type': 'application/json',
         'X-APP-Key': c.fabricAppId,
-        Authorization: this.formatBearerToken(fabricToken),
+        Authorization: fabricToken,
       },
       body: JSON.stringify(request),
       },
@@ -410,8 +429,39 @@ export class TelebirrService {
       .padEnd(32, '0');
   }
 
-  private formatBearerToken(token: string): string {
-    return token.startsWith('Bearer ') ? token : `Bearer ${token}`;
+  sanitizeTelebirrText(value: string): string {
+    return value.replace(/[~`!#$%^*()\\\-+=|/<>?;:"[\]{}\\\\&]/g, '').trim();
+  }
+
+  private logPreOrderDebug(
+    config: TelebirrConfig,
+    orderId: string,
+    title: string,
+    totalAmount: string,
+  ): void {
+    if (!config.debugRequests) {
+      return;
+    }
+    this.logger.log(
+      `Telebirr preOrder debug: ${JSON.stringify({
+        apiBase: config.apiBase,
+        fabricAppId: this.maskMiddle(config.fabricAppId),
+        merchantAppId: this.maskMiddle(config.merchantAppId),
+        merchantCode: config.merchantCode,
+        merchOrderId: orderId,
+        title,
+        totalAmount,
+        notifyUrlSet: Boolean(config.notifyUrl),
+        tokenAuthHeaderExpected: 'token-as-returned',
+      })}`,
+    );
+  }
+
+  private maskMiddle(value: string): string {
+    if (value.length <= 8) {
+      return value ? '***' : '';
+    }
+    return `${value.slice(0, 4)}...${value.slice(-4)}`;
   }
 
   private parseJson<T>(text: string, message: string): T {
@@ -426,8 +476,12 @@ export class TelebirrService {
   private async fetchTelebirr(
     url: string,
     init: RequestInit,
-  ): Promise<Response> {
+  ): Promise<TelebirrHttpResponse> {
     try {
+      const c = this.config();
+      if (c.caCertPath || c.allowInvalidTlsCert) {
+        return await this.fetchTelebirrWithNodeHttps(url, init, c);
+      }
       return await fetch(url, init);
     } catch (error) {
       const cause = (error as { cause?: { code?: string; message?: string } })
@@ -440,6 +494,85 @@ export class TelebirrService {
             : String(error);
       throw new Error(`Telebirr network request failed (${url}): ${reason}`);
     }
+  }
+
+  private fetchTelebirrWithNodeHttps(
+    url: string,
+    init: RequestInit,
+    config: TelebirrConfig,
+  ): Promise<TelebirrHttpResponse> {
+    const parsed = new URL(url);
+    if (parsed.protocol !== 'https:') {
+      throw new Error(`Telebirr URL must use https (${url})`);
+    }
+    const body = typeof init.body === 'string' ? init.body : undefined;
+    const headers = this.normalizeRequestHeaders(init.headers);
+    const ca = config.caCertPath
+      ? readFileSync(config.caCertPath, 'utf8')
+      : undefined;
+
+    if (config.allowInvalidTlsCert) {
+      this.logger.warn(
+        'TELEBIRR_TLS_ALLOW_INVALID_CERT=true is enabled. Use only for local/testbed debugging.',
+      );
+    }
+
+    return new Promise((resolve, reject) => {
+      const req = httpsRequest(
+        {
+          hostname: parsed.hostname,
+          port: parsed.port ? Number(parsed.port) : 443,
+          path: `${parsed.pathname}${parsed.search}`,
+          method: init.method ?? 'GET',
+          headers,
+          ca,
+          rejectUnauthorized: !config.allowInvalidTlsCert,
+        },
+        (res) => {
+          const chunks: Buffer[] = [];
+          res.on('data', (chunk: Buffer | string) => {
+            chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+          });
+          res.on('end', () => {
+            const status = res.statusCode ?? 0;
+            const text = Buffer.concat(chunks).toString('utf8');
+            resolve({
+              ok: status >= 200 && status < 300,
+              status,
+              text: async () => text,
+            });
+          });
+        },
+      );
+
+      req.setTimeout(15_000, () => {
+        req.destroy(new Error('Telebirr request timed out after 15000ms'));
+      });
+      req.on('error', reject);
+      if (body) {
+        req.write(body);
+      }
+      req.end();
+    });
+  }
+
+  private normalizeRequestHeaders(
+    headers: RequestInit['headers'],
+  ): Record<string, string> {
+    if (!headers) {
+      return {};
+    }
+    if (headers instanceof Headers) {
+      return Object.fromEntries(headers.entries());
+    }
+    if (Array.isArray(headers)) {
+      return Object.fromEntries(
+        headers.map(([key, value]) => [key, String(value)]),
+      );
+    }
+    return Object.fromEntries(
+      Object.entries(headers).map(([key, value]) => [key, String(value)]),
+    );
   }
 
   private normalizePem(

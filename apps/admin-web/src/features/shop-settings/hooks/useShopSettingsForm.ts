@@ -35,7 +35,7 @@ export function useShopSettingsForm() {
     setUploadError(null)
     setUploading(true)
     try {
-      const url = await uploadPublicImage(file)
+      const url = await uploadPublicImage(file, 'shop-logo')
       setForm((current) => ({ ...current, logoUrl: url }))
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed')

@@ -360,6 +360,76 @@ export class CreateBannerInput {
 }
 
 @InputType()
+export class CreateCategoryInput {
+  @Allow()
+  @Field()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(80)
+  name!: string;
+
+  @Allow()
+  @Field({ defaultValue: 'grid' })
+  @IsString()
+  @MaxLength(40)
+  iconKey!: string;
+
+  @Allow()
+  @Field({ defaultValue: '#E8C49E' })
+  @IsString()
+  @MaxLength(24)
+  color!: string;
+
+  @Allow()
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  sortOrder?: number;
+
+  @Allow()
+  @Field({ defaultValue: true })
+  @IsBoolean()
+  active!: boolean;
+}
+
+@InputType()
+export class UpdateCategoryInput {
+  @Allow()
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(80)
+  name?: string;
+
+  @Allow()
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  iconKey?: string;
+
+  @Allow()
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(24)
+  color?: string;
+
+  @Allow()
+  @Field(() => Int, { nullable: true })
+  @IsOptional()
+  @IsInt()
+  sortOrder?: number;
+
+  @Allow()
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsBoolean()
+  active?: boolean;
+}
+
+@InputType()
 export class CreateProductInput {
   @Allow()
   @Field()
@@ -369,11 +439,10 @@ export class CreateProductInput {
   name!: string;
 
   @Allow()
-  @Field()
+  @Field(() => String)
   @IsString()
   @MinLength(1)
-  @MaxLength(80)
-  category!: string;
+  categoryId!: string;
 
   /** 单价，整数，单位：分（ETB cent） */
   @Allow()
@@ -403,8 +472,8 @@ export class UpdateProductInput {
   name?: string;
 
   @Allow()
-  @Field({ nullable: true })
-  category?: string;
+  @Field(() => String, { nullable: true })
+  categoryId?: string;
 
   @Allow()
   @Field({ nullable: true })
@@ -502,7 +571,7 @@ export class UpdateShopInput {
 
   @Allow()
   @Field(() => CustomerThemeOverridesInput, { nullable: true })
-  customerThemeOverrides?: CustomerThemeOverridesInput;
+  customerThemeOverrides?: CustomerThemeOverridesInput | null;
 
   /** 营业中 true / 打烊 false，对应 Shop.active */
   @Allow()

@@ -18,5 +18,8 @@
   },
   "devDependencies": {
     "turbo": "^2.5.8"
+  },
+  "dependencies": {
+    "framer-motion": "^12.40.0"
   }
 }

@@ -15,3 +15,9 @@ export type Banner = {
   status: string
   createdAt: string
 }
+
+export type CreateBannerForm = {
+  imageFile: File
+  linkUrl: string
+  title: string
+}

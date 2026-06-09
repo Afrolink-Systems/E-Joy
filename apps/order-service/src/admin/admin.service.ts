@@ -44,6 +44,7 @@ import {
   StaffStatusModel,
   ShopApplicationModel,
   ShopPaymentConfigModel,
+  CategoryModel,
   ProductModel,
   TopDishModel,
 } from './admin.types';
@@ -53,6 +54,7 @@ import {
   ApproveShopApplicationInput,
   CustomerThemeOverridesInput,
   CreateBannerInput,
+  CreateCategoryInput,
   CreateShopApplicationInput,
   CreatePlatformCouponInput,
   PlatformCouponRuleTypeInput,
@@ -67,6 +69,7 @@ import {
   UpdatePrinterInput,
   UpdateStaffInput,
   UpdateShopInput,
+  UpdateCategoryInput,
 } from './admin.inputs';
 import { ProductService } from '../product/product.service';
 import {
@@ -1185,8 +1188,27 @@ export class AdminService {
     };
   }
 
-  async products(shopId: string, category?: string): Promise<ProductModel[]> {
-    return this.productService.listProducts(shopId, category);
+  async products(shopId: string, categoryId?: string): Promise<ProductModel[]> {
+    return this.productService.listProducts(shopId, categoryId);
+  }
+
+  async categories(shopId: string): Promise<CategoryModel[]> {
+    return this.productService.listCategories(shopId);
+  }
+
+  async createCategory(
+    shopId: string,
+    input: CreateCategoryInput,
+  ): Promise<CategoryModel> {
+    return this.productService.createCategory(shopId, input);
+  }
+
+  async updateCategory(
+    categoryId: string,
+    shopId: string,
+    input: UpdateCategoryInput,
+  ): Promise<CategoryModel | null> {
+    return this.productService.updateCategory(categoryId, shopId, input);
   }
 
   async shopById(shopId: string): Promise<ShopModel> {
@@ -1211,7 +1233,9 @@ export class AdminService {
         : undefined;
     const customerThemeOverrides =
       input.customerThemeOverrides !== undefined
-        ? this.normalizeCustomerThemeOverrides(input.customerThemeOverrides)
+        ? input.customerThemeOverrides === null
+          ? null
+          : this.normalizeCustomerThemeOverrides(input.customerThemeOverrides)
         : undefined;
     if (name !== undefined && name === '') {
       throw new BadRequestException('name cannot be empty');

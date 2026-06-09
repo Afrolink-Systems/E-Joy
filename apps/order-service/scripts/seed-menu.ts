@@ -28,6 +28,71 @@ async function main() {
 
   console.log(`Seeding menu items for shop: ${shopId}...`);
 
+  const categorySeeds = [
+    { name: 'Breakfast', iconKey: 'coffee', color: '#B7791F', sortOrder: 10 },
+    {
+      name: 'Fasting Main Dish',
+      iconKey: 'leaf',
+      color: '#2F7D4B',
+      sortOrder: 20,
+    },
+    {
+      name: 'Non-Fasting Main Dish',
+      iconKey: 'soup',
+      color: '#B85C38',
+      sortOrder: 30,
+    },
+    { name: 'Pizza', iconKey: 'snack', color: '#C2410C', sortOrder: 40 },
+    { name: 'Burger', iconKey: 'snack', color: '#92400E', sortOrder: 50 },
+    { name: 'Cake', iconKey: 'cake', color: '#BE185D', sortOrder: 60 },
+    { name: 'Extras', iconKey: 'grid', color: '#64748B', sortOrder: 70 },
+    { name: 'Tea', iconKey: 'coffee', color: '#A16207', sortOrder: 80 },
+    { name: 'Coffee', iconKey: 'coffee', color: '#7C2D12', sortOrder: 90 },
+    { name: 'Beverage', iconKey: 'drink', color: '#0E7490', sortOrder: 100 },
+    {
+      name: 'Iced Beverage',
+      iconKey: 'drink',
+      color: '#2563EB',
+      sortOrder: 110,
+    },
+    { name: 'Mojito', iconKey: 'drink', color: '#16A34A', sortOrder: 120 },
+    {
+      name: 'Fresh Juice',
+      iconKey: 'drink',
+      color: '#EA580C',
+      sortOrder: 130,
+    },
+    {
+      name: 'Water & Soft Drink',
+      iconKey: 'drink',
+      color: '#0284C7',
+      sortOrder: 140,
+    },
+  ];
+
+  const categoriesByName = new Map<string, { id: string; name: string }>();
+  for (const category of categorySeeds) {
+    const row = await prisma.category.upsert({
+      where: { shopId_name: { shopId, name: category.name } },
+      update: {
+        iconKey: category.iconKey,
+        color: category.color,
+        sortOrder: category.sortOrder,
+        active: true,
+      },
+      create: {
+        shopId,
+        name: category.name,
+        iconKey: category.iconKey,
+        color: category.color,
+        sortOrder: category.sortOrder,
+        active: true,
+      },
+      select: { id: true, name: true },
+    });
+    categoriesByName.set(row.name, row);
+  }
+
   const products = [
     // Breakfast
     { shopId, name: 'Normal Fetira', unitPrice: 23000, category: 'Breakfast', active: true },
@@ -133,9 +198,32 @@ async function main() {
     { shopId, name: 'Soda', unitPrice: 7000, category: 'Water & Soft Drink', active: true },
   ];
 
-  await prisma.product.createMany({
-    data: products,
-  });
+  for (const product of products) {
+    const category = categoriesByName.get(product.category);
+    if (!category) {
+      throw new Error(`Missing category seed for ${product.category}`);
+    }
+    const existing = await prisma.product.findFirst({
+      where: { shopId, name: product.name },
+      select: { id: true },
+    });
+    const data = {
+      name: product.name,
+      unitPrice: product.unitPrice,
+      categoryId: category.id,
+      active: product.active,
+    };
+    if (existing) {
+      await prisma.product.update({
+        where: { id: existing.id },
+        data,
+      });
+    } else {
+      await prisma.product.create({
+        data: { shopId, ...data },
+      });
+    }
+  }
 
   console.log(`✅ Successfully seeded ${products.length} menu items!`);
 }
