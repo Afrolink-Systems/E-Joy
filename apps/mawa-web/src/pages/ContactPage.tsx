@@ -1,21 +1,24 @@
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Clock3, Instagram, MapPin, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { mawaFacts, photoLibrary } from "@/data/mawa-content";
+import { useMawaScrollAnimations } from "@/hooks/use-mawa-scroll-animations";
 
 export function ContactPage() {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useMawaScrollAnimations(rootRef);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [message, setMessage] = useState("");
   const [sent, setSent] = useState(false);
 
   return (
-    <div className="bg-[#f3ebdc]">
-      <section className="mawa-container grid gap-10 py-16 lg:grid-cols-[0.95fr_1.05fr] lg:items-center lg:py-24">
-        <div>
-          <p className="text-sm font-bold uppercase tracking-[0.26em] text-[#a16d22]">Contact</p>
+    <div ref={rootRef} className="bg-[#f3ebdc]">
+      <section className="mawa-container mawa-section-pad grid gap-10 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+        <div className="gsap-reveal">
+          <p className="mawa-label">Contact</p>
           <h1 className="mawa-display mt-4 text-6xl leading-none text-[#0b3b2d] sm:text-7xl lg:text-8xl">
             Find the table, then stay for the cup.
           </h1>
@@ -24,7 +27,7 @@ export function ContactPage() {
             cafe questions.
           </p>
 
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <div className="gsap-stagger mt-8 grid gap-3 sm:grid-cols-2">
             <ContactTile icon={<MapPin size={20} />} title="Address" value={mawaFacts.address} />
             <ContactTile icon={<Clock3 size={20} />} title="Hours" value={mawaFacts.hours} />
             <ContactTile icon={<Phone size={20} />} title="Phone" value={mawaFacts.phone} />
@@ -32,14 +35,14 @@ export function ContactPage() {
           </div>
         </div>
 
-        <div className="mawa-photo aspect-4/5 rounded-4xl">
+        <div className="mawa-photo gsap-clip aspect-4/5 rounded-[1.75rem]">
           <img src={photoLibrary.bar} alt="Mawa cafe bar" />
         </div>
       </section>
 
-      <section className="bg-[#0b3b2d] py-16 text-[#fff8eb] lg:py-24">
+      <section className="mawa-section-pad bg-[#0b3b2d] text-[#fff8eb]">
         <div className="mawa-container grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-          <div>
+          <div className="gsap-reveal">
             <h2 className="mawa-display text-5xl leading-none sm:text-6xl">
               Message the cafe.
             </h2>
@@ -49,7 +52,7 @@ export function ContactPage() {
             </p>
           </div>
           <form
-            className="rounded-4xl border border-[#fff8eb]/15 bg-[#fff8eb] p-5 text-[#201914] sm:p-6"
+            className="gsap-reveal mawa-panel p-5 text-[#201914] sm:p-6"
             onSubmit={(e) => {
               e.preventDefault();
               setSent(true);
@@ -91,7 +94,7 @@ export function ContactPage() {
             ) : null}
             <Button
               type="submit"
-              className="mt-5 h-12 rounded-full bg-[#df9a35] px-7 text-[#201914] hover:bg-[#c98222]"
+              className="mawa-pressable mt-5 h-12 rounded-full bg-[#df9a35] px-7 text-[#201914] hover:bg-[#c98222]"
             >
               Send Message
             </Button>
@@ -104,9 +107,9 @@ export function ContactPage() {
 
 function ContactTile({ icon, title, value }: { icon: ReactNode; title: string; value: string }) {
   return (
-    <div className="rounded-3xl border border-[#d8c19e] bg-[#fff8eb] p-4">
+    <div className="mawa-panel mawa-hover-card p-4 transition">
       <div className="text-[#df9a35]">{icon}</div>
-      <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-[#a16d22]">{title}</p>
+      <p className="mawa-label mt-4">{title}</p>
       <p className="mt-2 text-sm font-semibold leading-6 text-[#0b3b2d]">{value}</p>
     </div>
   );

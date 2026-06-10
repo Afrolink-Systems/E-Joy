@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { useMutation } from "@apollo/client/react";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -10,6 +10,7 @@ import { defaultShopId } from "@/lib/apollo-client";
 import { CREATE_ORDER } from "@/graphql/create-order";
 import { formatEtbFromCents } from "@/lib/format-etb";
 import { clearCart, readCart, writeCart, type CartLine } from "@/lib/mawa-cart";
+import { useMawaScrollAnimations } from "@/hooks/use-mawa-scroll-animations";
 
 type Props = { navigate: NavigateFn };
 
@@ -30,6 +31,8 @@ type CreateOrderMutationData = {
 type OrderType = "dine-in" | "pickup" | "delivery";
 
 export function OrderPage({ navigate }: Props) {
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  useMawaScrollAnimations(rootRef);
   const [orderItems, setOrderItems] = useState<CartLine[]>(() => readCart());
   const [orderType, setOrderType] = useState<OrderType>("pickup");
   const [name, setName] = useState("");
@@ -116,11 +119,14 @@ export function OrderPage({ navigate }: Props) {
   }
 
   return (
-    <div className="bg-[#f3ebdc] pb-16">
-      <section className="bg-[#0b3b2d] py-14 text-[#fff8eb] lg:py-20">
+    <div ref={rootRef} className="bg-[#f3ebdc] pb-16">
+      <section className="mawa-page-hero py-14 lg:py-20">
         <div className="mawa-container">
-          <h1 className="mawa-display text-6xl leading-none sm:text-7xl">Order from Mawa</h1>
-          <p className="mt-4 max-w-2xl text-base leading-8 text-[#eadbc6]">
+          <p className="gsap-reveal mawa-label text-[#df9a35]">Online ordering</p>
+          <h1 className="gsap-reveal mawa-display mt-4 text-6xl leading-none sm:text-7xl">
+            Order from Mawa
+          </h1>
+          <p className="gsap-reveal mt-4 max-w-2xl text-base leading-8 text-[#eadbc6]">
             Build a pickup or dine-in order from the web menu. Table QR ordering stays inside the
             customer mini app, but this page keeps online ordering easy for guests.
           </p>
@@ -136,7 +142,7 @@ export function OrderPage({ navigate }: Props) {
                 <Button
                   type="button"
                   onClick={() => navigate("/menu")}
-                  className="mt-5 rounded-full bg-[#df9a35] text-[#201914] hover:bg-[#c98222]"
+                  className="mawa-pressable mt-5 rounded-full bg-[#df9a35] text-[#201914] hover:bg-[#c98222]"
                 >
                   Browse menu
                 </Button>
@@ -146,7 +152,7 @@ export function OrderPage({ navigate }: Props) {
                 {orderItems.map((item, index) => (
                   <div
                     key={`${item.productId}-${index}`}
-                    className="grid gap-4 rounded-3xl border border-[#eadbc6] bg-[#f8efdf] p-4 sm:grid-cols-[1fr_auto] sm:items-center"
+                    className="mawa-hover-card grid gap-4 rounded-3xl border border-[#eadbc6] bg-[#f8efdf] p-4 transition sm:grid-cols-[1fr_auto] sm:items-center"
                   >
                     <div>
                       <p className="text-lg font-bold text-[#0b3b2d]">{item.name}</p>
@@ -198,7 +204,7 @@ export function OrderPage({ navigate }: Props) {
                   disabled={type === "delivery"}
                   onClick={() => setOrderType(type)}
                   className={[
-                    "h-14 rounded-2xl border px-4 text-sm font-bold capitalize transition",
+                    "mawa-pressable h-14 rounded-2xl border px-4 text-sm font-bold capitalize",
                     orderType === type
                       ? "border-[#0b3b2d] bg-[#0b3b2d] text-[#fff8eb]"
                       : "border-[#d8c19e] bg-[#f8efdf] text-[#0b3b2d] hover:bg-[#eadbc6]",
@@ -255,8 +261,8 @@ export function OrderPage({ navigate }: Props) {
         </section>
 
         <aside className="lg:sticky lg:top-24 lg:h-fit">
-          <div className="rounded-4xl bg-[#201914] p-6 text-[#fff8eb] shadow-2xl">
-            <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#df9a35]">Summary</p>
+          <div className="mawa-dark-panel bg-[#201914] p-6 shadow-2xl">
+            <p className="mawa-label text-[#df9a35]">Summary</p>
             <div className="mt-8 space-y-4 text-sm">
               <div className="flex justify-between gap-4">
                 <span className="text-[#dfd2bd]">Order type</span>
@@ -293,7 +299,7 @@ export function OrderPage({ navigate }: Props) {
               type="button"
               disabled={!canSubmit || submitting}
               onClick={() => void handlePlaceOrder()}
-              className="mt-6 h-13 w-full rounded-full bg-[#df9a35] text-base font-black text-[#201914] hover:bg-[#c98222]"
+              className="mawa-pressable mt-6 h-13 w-full rounded-full bg-[#df9a35] text-base font-black text-[#201914] hover:bg-[#c98222]"
             >
               {submitting ? "Placing order..." : "Place order"}
             </Button>
@@ -316,7 +322,7 @@ function Panel({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-4xl border border-[#d8c19e] bg-[#fff8eb] p-5 shadow-sm sm:p-6">
+    <section className="gsap-reveal mawa-panel p-5 sm:p-6">
       <div className="mb-5 flex items-center justify-between gap-4">
         <h2 className="mawa-display text-4xl leading-none text-[#0b3b2d]">{title}</h2>
         {actionLabel && onAction ? (
@@ -324,7 +330,7 @@ function Panel({
             type="button"
             variant="ghost"
             onClick={onAction}
-            className="rounded-full text-[#a16d22] hover:bg-[#f3ebdc]"
+            className="mawa-pressable rounded-full text-[#a16d22] hover:bg-[#f3ebdc]"
           >
             {actionLabel}
           </Button>
@@ -349,7 +355,7 @@ function Stepper({
       <button
         type="button"
         onClick={onMinus}
-        className="flex h-9 w-9 items-center justify-center rounded-full text-[#0b3b2d] hover:bg-[#eadbc6]"
+        className="mawa-pressable flex h-9 w-9 items-center justify-center rounded-full text-[#0b3b2d] hover:bg-[#eadbc6]"
         aria-label="Decrease quantity"
       >
         <Minus size={16} />
@@ -358,7 +364,7 @@ function Stepper({
       <button
         type="button"
         onClick={onPlus}
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-[#df9a35] text-[#201914] hover:bg-[#c98222]"
+        className="mawa-pressable flex h-9 w-9 items-center justify-center rounded-full bg-[#df9a35] text-[#201914] hover:bg-[#c98222]"
         aria-label="Increase quantity"
       >
         <Plus size={16} />

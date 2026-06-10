@@ -34,15 +34,16 @@ export function MenuPage({ navigate }: Props) {
 
   return (
     <div ref={rootRef} className="bg-[#f3ebdc] pb-16">
-      <section className="relative overflow-hidden bg-[#0b3b2d] py-16 text-[#fff8eb] lg:py-24">
+      <section className="mawa-page-hero py-16 lg:py-24">
         <img
           src={photoLibrary.beans}
           alt="Roasted beans"
-          className="absolute inset-0 h-full w-full object-cover opacity-25"
+          className="gsap-parallax absolute inset-0 h-[112%] w-full object-cover opacity-30"
         />
-        <div className="absolute inset-0 bg-[#0b3b2d]/78" />
-        <div className="mawa-container relative">
-          <h1 className="gsap-reveal mawa-display max-w-4xl text-6xl leading-none sm:text-7xl lg:text-8xl">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(6,39,31,0.94),rgba(11,59,45,0.76)),radial-gradient(circle_at_80%_20%,rgba(223,154,53,0.22),transparent_25rem)]" />
+        <div className="mawa-container relative z-10">
+          <p className="gsap-reveal mawa-label text-[#df9a35]">Mawa menu</p>
+          <h1 className="gsap-reveal mawa-display mt-4 max-w-4xl text-6xl leading-none sm:text-7xl lg:text-8xl">
             Menu made for morning and meeting.
           </h1>
           <p className="gsap-reveal mt-5 max-w-2xl text-base leading-8 text-[#eadbc6]">
@@ -68,10 +69,8 @@ export function MenuPage({ navigate }: Props) {
         ) : (
           <div className="grid gap-8 lg:grid-cols-[16rem_1fr]">
             <aside className="lg:sticky lg:top-24 lg:h-[calc(100vh-7rem)]">
-              <div className="rounded-4xl border border-[#d8c19e] bg-[#fff8eb] p-3 shadow-sm">
-                <p className="px-3 pt-2 text-xs font-bold uppercase tracking-[0.22em] text-[#a16d22]">
-                  Categories
-                </p>
+              <div className="mawa-panel p-3">
+                <p className="mawa-label px-3 pt-2">Categories</p>
                 <div className="mawa-no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1 lg:block lg:max-h-[calc(100vh-12rem)] lg:space-y-2 lg:overflow-y-auto">
                   {categories.map((category) => (
                     <button
@@ -79,7 +78,7 @@ export function MenuPage({ navigate }: Props) {
                       type="button"
                       onClick={() => setSelectedCategory(category)}
                       className={[
-                        "min-w-max rounded-2xl px-4 py-3 text-left text-sm font-bold transition lg:block lg:w-full",
+                        "mawa-pressable min-w-max rounded-2xl px-4 py-3 text-left text-sm font-bold lg:block lg:w-full",
                         selectedCategory === category
                           ? "bg-[#0b3b2d] text-[#fff8eb]"
                           : "bg-[#f3ebdc] text-[#0b3b2d] hover:bg-[#eadbc6]",
@@ -95,16 +94,14 @@ export function MenuPage({ navigate }: Props) {
             <section className="grid gap-4">
               <div className="mb-2 flex items-end justify-between gap-4">
                 <div>
-                  <p className="text-sm font-bold uppercase tracking-[0.22em] text-[#a16d22]">
-                    {selectedCategory}
-                  </p>
+                  <p className="mawa-label">{selectedCategory}</p>
                   <h2 className="mawa-display mt-1 text-4xl leading-none">Fresh from Mawa</h2>
                 </div>
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => navigate("/order")}
-                  className="hidden rounded-full border-[#0b3b2d] bg-transparent text-[#0b3b2d] hover:bg-[#0b3b2d] hover:text-[#fff8eb] sm:inline-flex"
+                  className="mawa-pressable hidden rounded-full border-[#0b3b2d] bg-transparent text-[#0b3b2d] hover:bg-[#0b3b2d] hover:text-[#fff8eb] sm:inline-flex"
                 >
                   Cart
                 </Button>
@@ -146,14 +143,12 @@ function MenuCard({
   onOrder: () => void;
 }) {
   return (
-    <article className="group overflow-hidden rounded-[1.8rem] border border-[#d8c19e] bg-[#fff8eb] shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-xl">
+    <article className="mawa-panel mawa-hover-card group overflow-hidden transition">
       <div className="mawa-photo aspect-[4/3]">
-        <img src={image} alt={item.name} loading="lazy" />
+        <img src={image} alt={item.name} loading="lazy" className="mawa-image-lift" />
       </div>
       <div className="p-5">
-        <p className="text-xs font-bold uppercase tracking-[0.18em] text-[#a16d22]">
-          {item.category || "Mawa"}
-        </p>
+        <p className="mawa-label">{item.category || "Mawa"}</p>
         <h3 className="mt-2 min-h-14 text-xl font-bold leading-tight text-[#0b3b2d]">
           {item.name}
         </h3>
@@ -164,14 +159,14 @@ function MenuCard({
               type="button"
               variant="outline"
               onClick={onAdd}
-              className="rounded-full border-[#d8c19e] bg-transparent text-[#0b3b2d] hover:bg-[#e7dac5]"
+              className="mawa-pressable rounded-full border-[#d8c19e] bg-transparent text-[#0b3b2d] hover:bg-[#e7dac5]"
             >
               Add
             </Button>
             <Button
               type="button"
               onClick={onOrder}
-              className="rounded-full bg-[#df9a35] text-[#201914] hover:bg-[#c98222]"
+              className="mawa-pressable rounded-full bg-[#df9a35] text-[#201914] hover:bg-[#c98222]"
             >
               Order
             </Button>
