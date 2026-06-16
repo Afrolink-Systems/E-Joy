@@ -60,7 +60,8 @@ export class AuthTokenService {
       typeof payload.sid !== 'string' ||
       typeof payload.role !== 'string' ||
       (payload.subjectType !== 'STAFF' &&
-        payload.subjectType !== 'PLATFORM_ADMIN') ||
+        payload.subjectType !== 'PLATFORM_ADMIN' &&
+        payload.subjectType !== 'CUSTOMER') ||
       !Array.isArray(payload.scope)
     ) {
       throw new UnauthorizedException('Invalid access token');

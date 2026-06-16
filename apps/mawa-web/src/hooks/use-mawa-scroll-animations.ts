@@ -6,6 +6,9 @@ import { useGSAP } from "@gsap/react";
 gsap.registerPlugin(ScrollTrigger);
 
 function setReducedMotionState(root: HTMLElement) {
+  root.querySelectorAll(".gsap-hero [data-hero-item]").forEach((el) => {
+    gsap.set(el as HTMLElement, { autoAlpha: 1, y: 0, scale: 1, clearProps: "transform" });
+  });
   root.querySelectorAll(".gsap-reveal").forEach((el) => {
     gsap.set(el as HTMLElement, { autoAlpha: 1, y: 0, clearProps: "transform" });
   });
@@ -18,7 +21,10 @@ function setReducedMotionState(root: HTMLElement) {
     gsap.set(el as HTMLElement, { y: 0, clearProps: "transform" });
   });
   root.querySelectorAll(".gsap-clip").forEach((el) => {
-    gsap.set(el as HTMLElement, { clipPath: "inset(0% 0% 0% 0%)" });
+    gsap.set(el as HTMLElement, { clipPath: "inset(0% 0% 0% 0%)", scale: 1 });
+  });
+  root.querySelectorAll(".gsap-float").forEach((el) => {
+    gsap.set(el as HTMLElement, { y: 0, rotate: 0, clearProps: "transform" });
   });
 }
 
@@ -44,9 +50,29 @@ export function useMawaScrollAnimations(scope: RefObject<HTMLElement | null>) {
         return undefined;
       }
 
-      const ctaCleanups: Array<() => void> = [];
+      const interactionCleanups: Array<() => void> = [];
+      const mediaMatcher = gsap.matchMedia();
 
       const ctx = gsap.context(() => {
+        const hero = root.querySelector<HTMLElement>(".gsap-hero");
+        if (hero) {
+          const heroItems = hero.querySelectorAll<HTMLElement>("[data-hero-item]");
+          const heroMedia = hero.querySelectorAll<HTMLElement>("[data-hero-media]");
+          const heroTl = gsap.timeline({ defaults: { ease: "power3.out" } });
+          heroTl
+            .fromTo(
+              heroItems,
+              { autoAlpha: 0, y: 26 },
+              { autoAlpha: 1, y: 0, duration: 0.84, stagger: 0.08 },
+            )
+            .fromTo(
+              heroMedia,
+              { autoAlpha: 0, y: 34, scale: 0.97 },
+              { autoAlpha: 1, y: 0, scale: 1, duration: 1, stagger: 0.1 },
+              "<0.16",
+            );
+        }
+
         const reveals = gsap.utils.toArray<HTMLElement>(
           root.querySelectorAll(".gsap-reveal"),
         );
@@ -57,7 +83,7 @@ export function useMawaScrollAnimations(scope: RefObject<HTMLElement | null>) {
             {
               autoAlpha: 1,
               y: 0,
-              duration: 0.9,
+              duration: 0.82,
               ease: "power3.out",
               scrollTrigger: {
                 trigger: item,
@@ -80,8 +106,8 @@ export function useMawaScrollAnimations(scope: RefObject<HTMLElement | null>) {
             {
               autoAlpha: 1,
               y: 0,
-              duration: 0.72,
-              stagger: 0.12,
+              duration: 0.68,
+              stagger: 0.08,
               ease: "power3.out",
               scrollTrigger: {
                 trigger: list,
@@ -95,21 +121,23 @@ export function useMawaScrollAnimations(scope: RefObject<HTMLElement | null>) {
         const parallaxEls = gsap.utils.toArray<HTMLElement>(
           root.querySelectorAll(".gsap-parallax"),
         );
-        parallaxEls.forEach((el) => {
-          gsap.fromTo(
-            el,
-            { y: -22 },
-            {
-              y: 22,
-              ease: "none",
-              scrollTrigger: {
-                trigger: root,
-                start: "top top",
-                end: "bottom bottom",
-                scrub: 1,
+        mediaMatcher.add("(min-width: 768px)", () => {
+          parallaxEls.forEach((el) => {
+            gsap.fromTo(
+              el,
+              { y: -24 },
+              {
+                y: 28,
+                ease: "none",
+                scrollTrigger: {
+                  trigger: el.closest("section") ?? root,
+                  start: "top bottom",
+                  end: "bottom top",
+                  scrub: 1,
+                },
               },
-            },
-          );
+            );
+          });
         });
 
         const clipEls = gsap.utils.toArray<HTMLElement>(
@@ -122,7 +150,7 @@ export function useMawaScrollAnimations(scope: RefObject<HTMLElement | null>) {
             {
               clipPath: "inset(0% 0% 0% 0%)",
               scale: 1,
-              duration: 1.1,
+              duration: 1,
               ease: "power3.out",
               scrollTrigger: {
                 trigger: el,
@@ -133,19 +161,33 @@ export function useMawaScrollAnimations(scope: RefObject<HTMLElement | null>) {
           );
         });
 
+        const floatEls = gsap.utils.toArray<HTMLElement>(
+          root.querySelectorAll(".gsap-float"),
+        );
+        floatEls.forEach((el, index) => {
+          gsap.to(el, {
+            y: index % 2 === 0 ? -10 : 10,
+            rotate: index % 2 === 0 ? -0.6 : 0.6,
+            duration: 3.6 + index * 0.25,
+            ease: "sine.inOut",
+            repeat: -1,
+            yoyo: true,
+          });
+        });
+
         const ctaButtons = gsap.utils.toArray<HTMLElement>(
-          root.querySelectorAll(".gsap-cta"),
+          root.querySelectorAll(".gsap-cta, .mawa-pressable"),
         );
         ctaButtons.forEach((button) => {
           const enter = () => {
-            gsap.to(button, { y: -2, duration: 0.2, ease: "power2.out" });
+            gsap.to(button, { y: -2, duration: 0.18, ease: "power2.out", overwrite: "auto" });
           };
           const leave = () => {
-            gsap.to(button, { y: 0, duration: 0.2, ease: "power2.out" });
+            gsap.to(button, { y: 0, duration: 0.18, ease: "power2.out", overwrite: "auto" });
           };
           button.addEventListener("mouseenter", enter);
           button.addEventListener("mouseleave", leave);
-          ctaCleanups.push(() => {
+          interactionCleanups.push(() => {
             button.removeEventListener("mouseenter", enter);
             button.removeEventListener("mouseleave", leave);
           });
@@ -157,7 +199,8 @@ export function useMawaScrollAnimations(scope: RefObject<HTMLElement | null>) {
       }, root);
 
       return () => {
-        ctaCleanups.forEach((fn) => fn());
+        interactionCleanups.forEach((fn) => fn());
+        mediaMatcher.revert();
         ctx.revert();
       };
     },

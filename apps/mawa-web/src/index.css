@@ -214,7 +214,13 @@
 
   .mawa-display {
     font-family: var(--font-serif);
-    letter-spacing: -0.045em;
+    letter-spacing: 0;
+  }
+
+  .mawa-bubble-title {
+    font-family: "Arial Black", Impact, var(--font-sans);
+    letter-spacing: 0;
+    text-wrap: balance;
   }
 
   .mawa-photo {
@@ -227,6 +233,85 @@
 
   .mawa-photo img {
     @apply h-full w-full object-cover;
+  }
+
+  .mawa-soft-frame {
+    @apply overflow-hidden border border-[#fff8eb]/35 bg-[#fff8eb]/12 shadow-2xl;
+    border-radius: 1.75rem;
+    box-shadow: 0 34px 90px rgb(32 25 20 / 0.24);
+  }
+
+  .mawa-panel {
+    @apply border border-[#d8c19e] bg-[#fff8eb] shadow-sm;
+    border-radius: 1.5rem;
+  }
+
+  .mawa-dark-panel {
+    @apply border border-[#fff8eb]/16 bg-[#fff8eb]/10 text-[#fff8eb] backdrop-blur-xl;
+    border-radius: 1.5rem;
+  }
+
+  .mawa-section-pad {
+    @apply py-16 lg:py-24;
+  }
+
+  .mawa-page-hero {
+    @apply relative overflow-hidden bg-[#0b3b2d] text-[#fff8eb];
+  }
+
+  .mawa-page-hero::after {
+    content: "";
+    position: absolute;
+    inset: auto 0 0;
+    height: 7rem;
+    background: linear-gradient(180deg, transparent, rgb(11 59 45 / 0.92));
+    pointer-events: none;
+  }
+
+  .mawa-section-title {
+    @apply text-5xl leading-none text-[#0b3b2d] sm:text-6xl lg:text-7xl;
+    font-family: var(--font-serif);
+    letter-spacing: 0;
+  }
+
+  .mawa-section-copy {
+    @apply max-w-2xl text-base leading-8 text-[#5f564d];
+  }
+
+  .mawa-label {
+    @apply text-xs font-bold uppercase text-[#a16d22];
+    letter-spacing: 0.16em;
+  }
+
+  .mawa-pressable {
+    transition:
+      transform 180ms cubic-bezier(0.23, 1, 0.32, 1),
+      box-shadow 220ms cubic-bezier(0.23, 1, 0.32, 1),
+      background-color 180ms ease,
+      color 180ms ease,
+      border-color 180ms ease;
+  }
+
+  .mawa-pressable:active {
+    transform: scale(0.97);
+  }
+
+  .mawa-image-lift {
+    transition:
+      transform 700ms cubic-bezier(0.23, 1, 0.32, 1),
+      filter 700ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .mawa-hover-card:hover {
+      transform: translateY(-0.35rem);
+      box-shadow: 0 28px 70px rgb(32 25 20 / 0.16);
+    }
+
+    .mawa-hover-card:hover .mawa-image-lift {
+      transform: scale(1.045);
+      filter: saturate(1.08) contrast(1.04);
+    }
   }
 
   .mawa-pattern {
@@ -247,165 +332,18 @@
   .mawa-no-scrollbar::-webkit-scrollbar {
     display: none;
   }
-
-  .mawa-hero-page {
-    min-height: 100vh;
-    background: radial-gradient(circle at 0 100%, #219c6b 0, #d4eae2 42%), radial-gradient(circle at 100% 0, #219c6b 0, #d4eae2 40%);
-    color: #000000;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .mawa-topbar {
-    padding-top: 1.5rem;
-  }
-
-  .mawa-topbar-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .mawa-brand {
-    font-size: 1.3rem;
-    letter-spacing: 0.28em;
-    font-weight: 700;
-    color: #00623b;
-  }
-
-  .mawa-nav {
-    display: none;
-    gap: 2rem;
-    font-size: 0.82rem;
-    letter-spacing: 0.08em;
-    font-weight: 600;
-    color: #00623b;
-  }
-
-  .mawa-nav a:hover {
-    color: #000000;
-  }
-
-  .mawa-menu-btn {
-    border: 1px solid #c8d2ce;
-    background: #ffffff;
-    width: 2.3rem;
-    height: 2.3rem;
-    border-radius: 999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    color: #1f3933;
-  }
-
-  .mawa-hero-main {
-    min-height: calc(100vh - 5rem);
-    display: flex;
-    align-items: center;
-  }
-
-  .mawa-hero {
-    width: 100%;
-    position: relative;
-    padding: 2rem 0 5rem;
-  }
-
-  .mawa-hero-content {
-    text-align: center;
-    position: relative;
-    z-index: 3;
-  }
-
-  .mawa-hero-kicker {
-    font-size: 0.82rem;
-    font-weight: 600;
-    letter-spacing: 0.12em;
-    color: #00623b;
-  }
-
-  .mawa-hero-title {
-    font-size: clamp(3rem, 7vw, 6.6rem);
-    line-height: 0.93;
-    letter-spacing: -0.035em;
-    color: #00623b;
-    margin: 0.6rem 0 1rem;
-    font-weight: 700;
-  }
-
-  .mawa-hero-copy {
-    font-size: 1.05rem;
-    max-width: 38rem;
-    margin: 0 auto 1.8rem;
-    color: #00623b;
-    line-height: 1.7;
-  }
-
-  .mawa-hero-cta {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    background: #00623b;
-    color: #ffffff;
-    border-radius: 999px;
-    height: 3rem;
-    padding: 0 1.4rem;
-    font-size: 0.95rem;
-    font-weight: 600;
-  }
-
-  .mawa-hero-cta:hover {
-    background: #219c6b;
-  }
-
-  .mawa-beans-left,
-  .mawa-beans-right {
-    position: absolute;
-    width: min(37vw, 34rem);
-    opacity: 0.98;
-    z-index: 1;
-    pointer-events: none;
-  }
-
-  .mawa-beans-left {
-    left: -3rem;
-    top: 15%;
-  }
-
-  .mawa-beans-right {
-    right: -3rem;
-    top: 18%;
-  }
-
-  .mawa-cup {
-    width: min(22rem, 65vw);
-    margin: 2rem auto 0;
-    display: block;
-    position: relative;
-    z-index: 2;
-  }
-
-  @media (min-width: 960px) {
-    .mawa-nav {
-      display: flex;
-    }
-    .mawa-menu-btn {
-      display: none;
-    }
-  }
-
-  @media (max-width: 959px) {
-    .mawa-beans-left {
-      left: -7rem;
-      top: 12%;
-    }
-    .mawa-beans-right {
-      right: -7rem;
-      top: 12%;
-    }
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
   html {
     scroll-behavior: auto;
   }

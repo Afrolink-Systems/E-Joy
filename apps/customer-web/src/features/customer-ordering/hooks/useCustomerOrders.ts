@@ -1,5 +1,6 @@
 import { useQuery } from '@apollo/client/react'
 import { useState } from 'react'
+import { CUSTOMER_ORDERS, type CustomerOrdersData } from '../../../graphql/customerAuth'
 import { GET_ORDERS_QUERY, type GetOrdersData } from '../../../graphql/getOrders'
 import {
   clearCustomerOrderIds,
@@ -9,16 +10,21 @@ import {
 
 type UseCustomerOrdersParams = {
   hasTableSession: boolean
+  signedIn: boolean
 }
 
-export function useCustomerOrders({ hasTableSession }: UseCustomerOrdersParams) {
+export function useCustomerOrders({ hasTableSession, signedIn }: UseCustomerOrdersParams) {
   const [customerOrderIds, setCustomerOrderIds] = useState<string[]>(() =>
     readCustomerOrderIds(),
   )
 
-  const query = useQuery<GetOrdersData>(GET_ORDERS_QUERY, {
-    skip: !hasTableSession,
+  const guestQuery = useQuery<GetOrdersData>(GET_ORDERS_QUERY, {
+    skip: !hasTableSession || signedIn,
     variables: { ids: customerOrderIds },
+    fetchPolicy: 'cache-and-network',
+  })
+  const accountQuery = useQuery<CustomerOrdersData>(CUSTOMER_ORDERS, {
+    skip: !signedIn,
     fetchPolicy: 'cache-and-network',
   })
 
@@ -39,11 +45,18 @@ export function useCustomerOrders({ hasTableSession }: UseCustomerOrdersParams) 
     setCustomerOrderIds([])
   }
 
+  function refetchOrders(variables?: { ids: string[] }) {
+    return signedIn
+      ? accountQuery.refetch()
+      : guestQuery.refetch(variables)
+  }
+
   return {
     clearRememberedOrders,
-    orders: query.data?.getOrders ?? [],
-    ordersLoading: query.loading,
-    refetchOrders: query.refetch,
+    customerOrderIds,
+    orders: signedIn ? (accountQuery.data?.customerOrders ?? []) : (guestQuery.data?.getOrders ?? []),
+    ordersLoading: signedIn ? accountQuery.loading : guestQuery.loading,
+    refetchOrders,
     rememberOrderId,
   }
 }

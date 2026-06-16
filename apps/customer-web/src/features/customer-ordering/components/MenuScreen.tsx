@@ -36,7 +36,7 @@ import {
 } from '../../../components/ui/resizable'
 import type { CartItem } from '../../../store/useCartStore'
 import type { MenuCategory, MenuItem } from '../customer-ordering.types'
-import { categoryCartCount, formatBirr, resolveProductImageUrl } from '../customer-ordering.utils'
+import { formatBirr, resolveProductImageUrl } from '../customer-ordering.utils'
 import { MenuSkeleton } from './MenuSkeleton'
 
 type MenuScreenProps = {
@@ -46,6 +46,7 @@ type MenuScreenProps = {
   loading: boolean
   menuRows: MenuItem[]
   onAdd: (item: MenuItem) => void
+  onOpenAccount: () => void
   onOpenCart: () => void
   onOpenDetail: (item: MenuItem) => void
   onOpenInfo: () => void
@@ -63,31 +64,16 @@ type MenuScreenProps = {
 
 export function MenuScreen(props: MenuScreenProps) {
   const [view, setView] = useState<CollectionViewMode>('list')
-  const categoryCounts = useMemo(() => {
-    const counts = new Map<string, number>()
-    for (const line of props.cart) {
-      const item = props.menuRows.find((row) => row.id === line.id)
-      if (item) {
-        const categoryName = item.categoryMeta.name
-        counts.set(categoryName, (counts.get(categoryName) ?? 0) + line.quantity)
-      }
-    }
-    return counts
-  }, [props.cart, props.menuRows])
 
   const collectionItems = useMemo<AnimatedCollectionItem[]>(
     () =>
       props.visibleRows.map((item) => ({
         id: item.id,
         title: item.name,
-        subtitle: item.categoryMeta.name,
         image: resolveProductImageUrl(item.imageUrl),
         onOpen: () => props.onOpenDetail(item),
         meta: (
-          <div className="flex min-w-0 flex-col gap-1.5">
-            <span className="truncate text-xs font-semibold text-muted-foreground max-[370px]:text-[11px]">
-              {item.categoryMeta.name}
-            </span>
+          <div className="flex min-w-0 flex-col">
             <strong className="text-[17px] font-black text-card-foreground max-[370px]:text-[16px]">{formatBirr(item.unitPrice)}</strong>
           </div>
         ),
@@ -113,16 +99,20 @@ export function MenuScreen(props: MenuScreenProps) {
           <button
             type="button"
             className="grid size-11 place-items-center overflow-hidden rounded-full bg-secondary text-secondary-foreground max-[370px]:size-10"
-            onClick={props.onOpenInfo}
-            aria-label="Open shop information"
+            onClick={props.onOpenAccount}
+            aria-label="Open account"
           >
             <UserRound className="size-6 max-[370px]:size-5" />
           </button>
           <div className="min-w-0 text-center">
             <h1 className="truncate text-[22px] font-black leading-none text-foreground max-[370px]:text-[20px]">Menu</h1>
-            <p className="mx-auto mt-1 max-w-[220px] truncate text-xs font-semibold text-muted-foreground max-[370px]:max-w-[180px] max-[370px]:text-[11px]">
+            <button
+              type="button"
+              className="mx-auto mt-1 block max-w-[220px] truncate text-xs font-semibold text-muted-foreground transition hover:text-foreground max-[370px]:max-w-[180px] max-[370px]:text-[11px]"
+              onClick={props.onOpenInfo}
+            >
               {props.shopName} - Table {props.tableRef}
-            </p>
+            </button>
           </div>
           <button
             type="button"
@@ -156,7 +146,6 @@ export function MenuScreen(props: MenuScreenProps) {
                 key={category.name}
                 active={props.selectedCategory === category.name}
                 category={category}
-                count={categoryCartCount(category.name, categoryCounts, props.totalQuantity)}
                 onClick={() => props.setSelectedCategory(category.name)}
               />
             ))}
@@ -193,7 +182,6 @@ export function MenuScreen(props: MenuScreenProps) {
                     key={category.name}
                     active={props.selectedCategory === category.name}
                     category={category}
-                    count={categoryCartCount(category.name, categoryCounts, props.totalQuantity)}
                     onClick={() => props.setSelectedCategory(category.name)}
                   />
                 ))}
@@ -258,12 +246,10 @@ export function MenuScreen(props: MenuScreenProps) {
 function CategoryPill({
   active,
   category,
-  count,
   onClick,
 }: {
   active: boolean
   category: MenuCategory
-  count: number
   onClick: () => void
 }) {
   return (
@@ -275,7 +261,6 @@ function CategoryPill({
       }`}
     >
       {category.name}
-      {count > 0 ? <span className="ml-2 text-[11px]">{count}</span> : null}
     </button>
   )
 }
@@ -283,12 +268,10 @@ function CategoryPill({
 function CategoryTile({
   active,
   category,
-  count,
   onClick,
 }: {
   active: boolean
   category: MenuCategory
-  count: number
   onClick: () => void
 }) {
   return (
@@ -302,11 +285,6 @@ function CategoryTile({
       title={category.name}
     >
       {renderCategoryIcon(category, active)}
-      {count > 0 ? (
-        <Badge className="absolute right-0.5 top-1 min-w-4 justify-center rounded-full px-1 text-[9px] shadow-sm ring-2 ring-background">
-          {count}
-        </Badge>
-      ) : null}
     </button>
   )
 }

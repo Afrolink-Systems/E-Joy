@@ -46,6 +46,7 @@ import {
   ShopPaymentConfigModel,
   CategoryModel,
   ProductModel,
+  ShopCustomerSummaryModel,
   TopDishModel,
 } from './admin.types';
 import { CustomerThemeOverridesModel, ShopModel } from '../shop/shop.types';
@@ -1190,6 +1191,83 @@ export class AdminService {
 
   async products(shopId: string, categoryId?: string): Promise<ProductModel[]> {
     return this.productService.listProducts(shopId, categoryId);
+  }
+
+  async shopCustomers(shopId: string): Promise<ShopCustomerSummaryModel[]> {
+    const rows = await this.prisma.order.findMany({
+      where: { shopId },
+      select: {
+        userId: true,
+        totalAmount: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            phone: true,
+            name: true,
+            phoneVerifiedAt: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const summaries = new Map<
+      string,
+      {
+        id: string;
+        phone: string;
+        name?: string;
+        orderCount: number;
+        totalAmount: number;
+        lastOrderAt?: Date;
+      }
+    >();
+    for (const row of rows) {
+      const user =
+        row.user && typeof row.user === 'object'
+          ? (row.user as Record<string, unknown>)
+          : undefined;
+      const phone = typeof user?.phone === 'string' ? user.phone : '';
+      const phoneVerifiedAt = user?.phoneVerifiedAt;
+      if (
+        !phone ||
+        phone.startsWith('stub-') ||
+        !(phoneVerifiedAt instanceof Date)
+      ) {
+        continue;
+      }
+      const id = String(user?.id ?? row.userId);
+      const existing = summaries.get(id);
+      const createdAt =
+        row.createdAt instanceof Date
+          ? row.createdAt
+          : new Date(String(row.createdAt));
+      if (existing) {
+        existing.orderCount += 1;
+        existing.totalAmount += Number(row.totalAmount ?? 0);
+        if (!existing.lastOrderAt || createdAt > existing.lastOrderAt) {
+          existing.lastOrderAt = createdAt;
+        }
+        continue;
+      }
+      summaries.set(id, {
+        id,
+        phone,
+        name: typeof user?.name === 'string' ? user.name : undefined,
+        orderCount: 1,
+        totalAmount: Number(row.totalAmount ?? 0),
+        lastOrderAt: createdAt,
+      });
+    }
+    return [...summaries.values()]
+      .sort(
+        (a, b) =>
+          (b.lastOrderAt?.getTime() ?? 0) - (a.lastOrderAt?.getTime() ?? 0),
+      )
+      .map((summary) => ({
+        ...summary,
+        lastOrderAt: summary.lastOrderAt?.toISOString(),
+      }));
   }
 
   async categories(shopId: string): Promise<CategoryModel[]> {

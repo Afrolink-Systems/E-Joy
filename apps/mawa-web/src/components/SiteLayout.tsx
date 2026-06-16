@@ -12,6 +12,7 @@ type Props = {
 
 export function SiteLayout({ children, currentPath, navigate }: Props) {
   const [open, setOpen] = useState(false);
+  const isHome = currentPath === "/";
 
   const go = (path: AppPath) => {
     setOpen(false);
@@ -20,6 +21,7 @@ export function SiteLayout({ children, currentPath, navigate }: Props) {
 
   return (
     <div className="mawa-shell min-h-screen overflow-x-hidden">
+      {!isHome ? (
       <header className="sticky top-0 z-50 border-b border-[#e4d4bd]/70 bg-[#fff8eb]/88 text-[#0b3b2d] backdrop-blur-xl">
         <div className="mawa-container flex min-h-18 items-center justify-between gap-4 py-3 lg:min-h-20">
           <button
@@ -46,7 +48,7 @@ export function SiteLayout({ children, currentPath, navigate }: Props) {
                 type="button"
                 onClick={() => go(item.path)}
                 className={[
-                  "rounded-full px-4 py-2 text-sm font-semibold transition",
+                  "mawa-pressable rounded-full px-4 py-2 text-sm font-semibold",
                   currentPath === item.path
                     ? "bg-[#0b3b2d] text-[#fff8eb]"
                     : "text-[#214d3f] hover:bg-[#eadbc6]",
@@ -61,7 +63,7 @@ export function SiteLayout({ children, currentPath, navigate }: Props) {
             <Button
               type="button"
               onClick={() => go("/order")}
-              className="hidden rounded-full bg-[#df9a35] px-5 text-[#201914] hover:bg-[#c98222] sm:inline-flex"
+              className="mawa-pressable hidden rounded-full bg-[#df9a35] px-5 text-[#201914] hover:bg-[#c98222] sm:inline-flex"
             >
               Order Now
             </Button>
@@ -86,7 +88,7 @@ export function SiteLayout({ children, currentPath, navigate }: Props) {
                   type="button"
                   onClick={() => go(item.path)}
                   className={[
-                    "rounded-2xl px-4 py-3 text-left text-sm font-semibold",
+                    "mawa-pressable rounded-2xl px-4 py-3 text-left text-sm font-semibold",
                     currentPath === item.path
                       ? "bg-[#0b3b2d] text-[#fff8eb]"
                       : "bg-[#f3ebdc] text-[#0b3b2d]",
@@ -98,7 +100,7 @@ export function SiteLayout({ children, currentPath, navigate }: Props) {
               <Button
                 type="button"
                 onClick={() => go("/order")}
-                className="mt-1 rounded-2xl bg-[#df9a35] text-[#201914] hover:bg-[#c98222]"
+                className="mawa-pressable mt-1 rounded-2xl bg-[#df9a35] text-[#201914] hover:bg-[#c98222]"
               >
                 Order Now
               </Button>
@@ -106,6 +108,7 @@ export function SiteLayout({ children, currentPath, navigate }: Props) {
           </div>
         ) : null}
       </header>
+      ) : null}
 
       <main>{children}</main>
 
