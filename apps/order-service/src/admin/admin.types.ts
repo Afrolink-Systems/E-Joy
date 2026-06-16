@@ -605,3 +605,24 @@ export class ProductModel {
   @Field(() => ProductStatusModel)
   status!: ProductStatusModel;
 }
+
+@ObjectType()
+export class ShopCustomerSummaryModel {
+  @Field(() => ID)
+  id!: string;
+
+  @Field()
+  phone!: string;
+
+  @Field({ nullable: true })
+  name?: string;
+
+  @Field(() => Int)
+  orderCount!: number;
+
+  @Field(() => Int)
+  totalAmount!: number;
+
+  @Field({ nullable: true })
+  lastOrderAt?: string;
+}

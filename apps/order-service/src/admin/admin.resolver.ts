@@ -43,6 +43,7 @@ import {
   PrinterModel,
   ResetPasswordPayload,
   ShopPaymentConfigModel,
+  ShopCustomerSummaryModel,
   StaffModel,
   StaffStatusModel,
   ShopApplicationModel,
@@ -458,6 +459,20 @@ export class AdminResolver {
     this.assertManagerAccess(role, scope, 'staff:read');
     const effectiveShopId = this.resolveShopOrThrow(shopId, currentShopId);
     return this.adminService.products(effectiveShopId, categoryId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Query(() => [ShopCustomerSummaryModel])
+  shopCustomers(
+    @Args('shopId', { type: () => String, nullable: true })
+    shopId: string | undefined,
+    @CurrentUserRole() role?: string,
+    @CurrentUserScope() scope?: string[],
+    @CurrentUserShopId() currentShopId?: string,
+  ): Promise<ShopCustomerSummaryModel[]> {
+    this.assertManagerAccess(role, scope, 'staff:read');
+    const effectiveShopId = this.resolveShopOrThrow(shopId, currentShopId);
+    return this.adminService.shopCustomers(effectiveShopId);
   }
 
   @UseGuards(JwtAuthGuard)

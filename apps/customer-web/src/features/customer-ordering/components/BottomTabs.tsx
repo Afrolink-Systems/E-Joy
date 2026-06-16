@@ -1,17 +1,14 @@
 import { Home, ReceiptText, UtensilsCrossed } from 'lucide-react'
-import { Badge } from '../../../components/ui/badge'
 import type { CustomerTab } from '../customer-ordering.types'
 
 type BottomTabsProps = {
   activeTab: CustomerTab
   onSelect: (tab: CustomerTab) => void
-  totalQuantity: number
 }
 
 export function BottomTabs({
   activeTab,
   onSelect,
-  totalQuantity,
 }: BottomTabsProps) {
   return (
     <nav className="fixed bottom-0 left-1/2 z-[35] w-[min(480px,100vw)] -translate-x-1/2 px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] max-[370px]:px-2">
@@ -25,11 +22,6 @@ export function BottomTabs({
         >
           <UtensilsCrossed className="size-[23px] max-[370px]:size-[21px]" />
           {activeTab === 'menu' ? <span className="absolute bottom-1 size-1 rounded-full bg-primary" /> : null}
-          {totalQuantity > 0 ? (
-            <Badge className="absolute -right-1 -top-1 min-w-5 justify-center rounded-full px-1 text-[10px] shadow-sm ring-2 ring-card">
-              {totalQuantity}
-            </Badge>
-          ) : null}
         </button>
         <Tab active={activeTab === 'orders'} icon={ReceiptText} label="Orders" onClick={() => onSelect('orders')} />
       </div>

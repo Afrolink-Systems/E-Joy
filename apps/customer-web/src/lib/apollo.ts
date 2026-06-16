@@ -6,6 +6,7 @@ import { setContext } from '@apollo/client/link/context';
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions';
 import { getMainDefinition } from '@apollo/client/utilities';
 import { createClient } from 'graphql-ws';
+import { getCustomerAccessToken } from './customerAuth';
 import { captureFrontendException } from './tracking';
 
 const demoToken =
@@ -14,6 +15,7 @@ const demoToken =
 // HTTP link (default port 9602)
 const httpLink = new HttpLink({
   uri: import.meta.env.VITE_GRAPHQL_URL ?? 'http://localhost:9602/graphql',
+  credentials: 'include',
 });
 
 const captureGraphqlErrorLink = new ErrorLink(({ error, operation }) => {
@@ -33,9 +35,13 @@ const captureGraphqlErrorLink = new ErrorLink(({ error, operation }) => {
 const authLink = setContext((_, { headers }) => ({
   headers: {
     ...headers,
-    ...(demoToken ? { authorization: `Bearer ${demoToken}` } : {}),
+    ...(() => {
+      const customerToken = getCustomerAccessToken()
+      const token = customerToken || demoToken
+      return token ? { authorization: `Bearer ${token}` } : {}
+    })(),
   },
-}));
+}))
 
 const httpLinkWithAuth = ApolloLink.from([
   captureGraphqlErrorLink,
@@ -48,7 +54,10 @@ const wsLink = new GraphQLWsLink(
   createClient({
     url: import.meta.env.VITE_GRAPHQL_WS_URL ?? 'ws://localhost:9602/graphql',
     connectionParams: () => ({
-      ...(demoToken ? { Authorization: `Bearer ${demoToken}` } : {}),
+      ...(() => {
+        const token = getCustomerAccessToken() || demoToken
+        return token ? { Authorization: `Bearer ${token}` } : {}
+      })(),
     }),
   }),
 );

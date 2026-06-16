@@ -1,5 +1,6 @@
 import { BottomTabs } from './components/BottomTabs'
 import { CheckoutCartDrawer } from './components/CheckoutCartDrawer'
+import { CustomerAccountDialog } from './components/CustomerAccountDialog'
 import { HomeScreen } from './components/HomeScreen'
 import { ItemDetailDrawer } from './components/ItemDetailDrawer'
 import { MenuScreen } from './components/MenuScreen'
@@ -47,6 +48,7 @@ export function CustomerOrderingPage() {
             onAdd={(item) => {
               state.addItem({ id: item.id, name: item.name, price: item.unitPrice })
             }}
+            onOpenAccount={() => state.setAccountDialogOpen(true)}
             onOpenCart={() => state.setCartOpen(true)}
             onOpenDetail={state.setDetailItem}
             onOpenInfo={() => state.setShopInfoOpen(true)}
@@ -83,7 +85,6 @@ export function CustomerOrderingPage() {
               }
               state.setActiveTab(tab)
             }}
-            totalQuantity={state.totalQuantity}
           />
         )}
       </div>
@@ -107,6 +108,38 @@ export function CustomerOrderingPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={state.saveHistoryPromptOpen}
+        onOpenChange={state.setSaveHistoryPromptOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Save this order?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Create a customer account to keep receipts, history, and spending across restaurants.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Not now</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                state.setSaveHistoryPromptOpen(false)
+                state.setAccountDialogOpen(true)
+              }}
+            >
+              Save history
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <CustomerAccountDialog
+        account={state.account}
+        rememberedOrderIds={state.customerOrderIds}
+        open={state.accountDialogOpen}
+        onOpenChange={state.setAccountDialogOpen}
+      />
 
       <ItemDetailDrawer
         item={state.detailItem}

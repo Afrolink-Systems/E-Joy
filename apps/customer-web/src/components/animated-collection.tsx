@@ -156,7 +156,7 @@ export function AnimatedCollectionView({
                   </p>
                 ) : null}
               </div>
-              <div className={cn("mt-1.5", view === "list" && "mt-auto")}>{item.meta}</div>
+              <div className={cn("mt-1.5", view === "list" && "mt-2")}>{item.meta}</div>
             </motion.div>
           )}
 

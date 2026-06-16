@@ -12,10 +12,27 @@ const sessionState = vi.hoisted(() => ({
 
 const ordersState = vi.hoisted(() => ({
   clearRememberedOrders: vi.fn(),
+  customerOrderIds: [],
   orders: [],
   ordersLoading: false,
   refetchOrders: vi.fn(),
   rememberOrderId: vi.fn(),
+}))
+
+const accountState = vi.hoisted(() => ({
+  claimOrders: vi.fn(),
+  expense: null,
+  expenseLoading: false,
+  isSignedIn: false,
+  loginWithPasskey: vi.fn(),
+  logout: vi.fn(),
+  me: null,
+  meLoading: false,
+  refetchAccount: vi.fn(),
+  registerPasskey: vi.fn(),
+  requestOtp: vi.fn(),
+  token: '',
+  verifyOtp: vi.fn(),
 }))
 
 vi.mock('react-router-dom', async (importOriginal) => {
@@ -32,6 +49,10 @@ vi.mock('./useCustomerSessionContext', () => ({
 
 vi.mock('./useCustomerOrders', () => ({
   useCustomerOrders: () => ordersState,
+}))
+
+vi.mock('./useCustomerAccount', () => ({
+  useCustomerAccount: () => accountState,
 }))
 
 vi.mock('./useCustomerMenu', () => ({

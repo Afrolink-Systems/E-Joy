@@ -10,11 +10,13 @@ import {
 import { GraphQLBoolean, GraphQLString } from 'graphql';
 import { Inject, Logger, UseGuards } from '@nestjs/common';
 import { PubSub } from 'graphql-subscriptions';
+import { randomUUID } from 'node:crypto';
 import { CurrentUserId } from '../auth/current-user-id.decorator';
 import { CurrentUserRole } from '../auth/current-user-role.decorator';
 import { CurrentUserScope } from '../auth/current-user-scope.decorator';
 import { CurrentUserShopId } from '../auth/current-user-shop-id.decorator';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/optional-jwt-auth.guard';
 import { SensitiveActionVerificationInput } from '../auth/sensitive-action-verification.input';
 import {
   AcceptDeliveryOrderInput,
@@ -147,12 +149,24 @@ export class OrderResolver {
   }
 
   /** Demo / 战时：免 JWT，顾客身份固定 guest-001，便于先打通防超卖与落库 */
+  @UseGuards(OptionalJwtAuthGuard)
   @Mutation(() => OrderPayload)
   createOrder(
     @Args('input') input: CreateOrderInput,
     @CurrentUserId() userId?: string,
+    @Context()
+    ctx?: {
+      req?: { user?: { subjectType?: string; id?: string } };
+    },
   ): Promise<OrderPayload> {
-    return this.orderService.createOrder(input, userId ?? 'guest-001');
+    const customerUserId =
+      ctx?.req?.user?.subjectType === 'CUSTOMER'
+        ? (userId ?? ctx.req.user.id)
+        : undefined;
+    return this.orderService.createOrder(
+      input,
+      customerUserId ?? `guest-${randomUUID()}`,
+    );
   }
 
   @Mutation(() => PaymentPayload)
