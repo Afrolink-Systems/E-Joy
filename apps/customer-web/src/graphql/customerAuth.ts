@@ -6,6 +6,7 @@ export const REQUEST_CUSTOMER_OTP = gql`
     requestCustomerOtp(input: $input) {
       ok
       expiresAt
+      retryAfterSeconds
       devCode
     }
   }

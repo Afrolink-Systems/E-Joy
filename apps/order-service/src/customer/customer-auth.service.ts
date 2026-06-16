@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Inject,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -23,6 +24,8 @@ import { RateLimitService } from '../auth/rate-limit.service';
 import { AppLoggerService } from '../ops/app-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { OrderHistoryOrderModel } from '../order/order.types';
+import { SMS_PROVIDER, type SmsProvider } from '../sms/sms-provider.interface';
+import { SmsProviderError } from '../sms/sms-provider.error';
 import type {
   CustomerExpenseSummaryModel,
   CustomerMeModel,
@@ -62,6 +65,8 @@ type OtpRow = {
   codeHash: string;
   attempts: number;
   expiresAt: Date;
+  consumedAt?: Date | null;
+  createdAt: Date;
 };
 
 type CustomerDb = PrismaService & {
@@ -119,6 +124,7 @@ export class CustomerAuthService {
     private readonly authTokens: AuthTokenService,
     private readonly rateLimit: RateLimitService,
     private readonly appLogger: AppLoggerService,
+    @Inject(SMS_PROVIDER) private readonly smsProvider: SmsProvider,
   ) {}
 
   private db(): CustomerDb {
@@ -126,7 +132,12 @@ export class CustomerAuthService {
   }
 
   normalizePhone(phone: string): string {
-    const normalized = phone.trim().replace(/[\s()-]/g, '');
+    const compact = phone.trim().replace(/[\s()-]/g, '');
+    const normalized = compact.startsWith('09')
+      ? `+251${compact.slice(1)}`
+      : compact.startsWith('9') && compact.length === 9
+        ? `+251${compact}`
+        : compact;
     if (!/^\+?[0-9]{7,15}$/.test(normalized)) {
       throw new BadRequestException('Enter a valid phone number');
     }
@@ -161,7 +172,10 @@ export class CustomerAuthService {
     phone: string;
     purpose: string;
     ip: string;
-  }): Promise<{ expiresAt: string; devCode?: string }> {
+  }): Promise<{
+    expiresAt: string;
+    devCode?: string;
+  }> {
     const phone = this.normalizePhone(input.phone);
     const purpose = this.normalizePurpose(input.purpose);
     this.rateLimit.consume({
@@ -182,6 +196,7 @@ export class CustomerAuthService {
         expiresAt,
       },
     });
+    await this.sendOtpSms(phone, code, purpose);
     this.appLogger.info('customer.otp.requested', { phone, purpose });
     return {
       expiresAt: expiresAt.toISOString(),
@@ -536,6 +551,43 @@ export class CustomerAuthService {
       process.env.CUSTOMER_OTP_EXPOSE_CODE === 'true' ||
       process.env.NODE_ENV !== 'production'
     );
+  }
+
+  private async sendOtpSms(
+    phone: string,
+    code: string,
+    purpose: string,
+  ): Promise<void> {
+    try {
+      const result = await this.smsProvider.sendOtp({
+        phone,
+        code,
+        purpose,
+        message: this.otpMessage(code),
+      });
+      this.appLogger.info('customer.otp.sms_sent', {
+        phone,
+        purpose,
+        provider: result.provider,
+        providerMessageId: result.providerMessageId,
+        status: result.status,
+      });
+    } catch (error) {
+      this.appLogger.warn('customer.otp.sms_failed', {
+        provider:
+          error instanceof SmsProviderError
+            ? (error.provider ?? this.smsProvider.name)
+            : this.smsProvider.name,
+        metadata:
+          error instanceof SmsProviderError ? error.metadata : undefined,
+        reason: error instanceof Error ? error.message : 'unknown',
+      });
+      throw error;
+    }
+  }
+
+  private otpMessage(code: string): string {
+    return `Your E-Joy verification code is ${code}. It expires in 10 minutes.`;
   }
 
   private rpName(): string {

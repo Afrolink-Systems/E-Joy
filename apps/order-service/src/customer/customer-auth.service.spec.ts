@@ -1,7 +1,8 @@
 import { UnauthorizedException } from '@nestjs/common';
 import { CustomerAuthService } from './customer-auth.service';
+import type { SmsProvider } from '../sms/sms-provider.interface';
 
-function buildService() {
+function buildService(smsProvider?: SmsProvider) {
   const user = {
     id: 'user_1',
     phone: '+251900000000',
@@ -40,6 +41,7 @@ function buildService() {
             const row = {
               id: `otp_${otpRows.length + 1}`,
               attempts: 0,
+              createdAt: new Date(),
               ...data,
             };
             otpRows.push(row);
@@ -48,7 +50,24 @@ function buildService() {
         ),
       findFirst: jest
         .fn()
-        .mockImplementation(async () => otpRows.at(-1) ?? null),
+        .mockImplementation(
+          async (args?: { where?: { createdAt?: { gte?: Date } } }) => {
+            const createdAfter = args?.where?.createdAt?.gte;
+            if (createdAfter) {
+              for (let index = otpRows.length - 1; index >= 0; index -= 1) {
+                const row = otpRows[index];
+                if (
+                  row.createdAt instanceof Date &&
+                  row.createdAt >= createdAfter
+                ) {
+                  return row;
+                }
+              }
+              return null;
+            }
+            return otpRows.at(-1) ?? null;
+          },
+        ),
       update: jest
         .fn()
         .mockImplementation(
@@ -74,6 +93,15 @@ function buildService() {
     consume: jest.fn(),
     getClientIp: jest.fn().mockReturnValue('127.0.0.1'),
   };
+  const sms =
+    smsProvider ??
+    ({
+      name: 'noop',
+      sendOtp: jest.fn().mockResolvedValue({
+        provider: 'noop',
+        status: 'skipped',
+      }),
+    } as SmsProvider);
   const service = new CustomerAuthService(
     prisma as never,
     {
@@ -87,8 +115,9 @@ function buildService() {
       info: jest.fn(),
       warn: jest.fn(),
     } as never,
+    sms,
   );
-  return { service, prisma, otpRows };
+  return { service, prisma, otpRows, sms };
 }
 
 describe('CustomerAuthService OTP and claiming', () => {
@@ -100,6 +129,14 @@ describe('CustomerAuthService OTP and claiming', () => {
 
   afterEach(() => {
     process.env.NODE_ENV = originalNodeEnv;
+  });
+
+  it('normalizes Ethiopian local mobile numbers', () => {
+    const { service } = buildService();
+
+    expect(service.normalizePhone('0912345678')).toBe('+251912345678');
+    expect(service.normalizePhone('912345678')).toBe('+251912345678');
+    expect(service.normalizePhone('+251912345678')).toBe('+251912345678');
   });
 
   it('issues and consumes a customer OTP once', async () => {
@@ -129,6 +166,33 @@ describe('CustomerAuthService OTP and claiming', () => {
     expect(prisma.customerOtpCode.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({ consumedAt: expect.any(Date) }),
+      }),
+    );
+  });
+
+  it('sends OTP through the configured SMS provider', async () => {
+    const sendOtp = jest.fn().mockResolvedValue({
+      provider: 'noop',
+      status: 'skipped',
+    });
+    const sms = {
+      name: 'noop',
+      sendOtp,
+    } as SmsProvider;
+    const { service } = buildService(sms);
+
+    const requested = await service.requestOtp({
+      phone: '+251900000000',
+      purpose: 'signup',
+      ip: '127.0.0.1',
+    });
+
+    expect(sendOtp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        phone: '+251900000000',
+        code: requested.devCode,
+        purpose: 'signup',
+        message: expect.stringContaining(requested.devCode ?? ''),
       }),
     );
   });

@@ -42,6 +42,11 @@ import { ProductResolver } from './product/product.resolver';
 import { ProductService } from './product/product.service';
 import { CustomerAuthResolver } from './customer/customer-auth.resolver';
 import { CustomerAuthService } from './customer/customer-auth.service';
+import { AfroMessageSmsProvider } from './sms/afromessage-sms.provider';
+import { NoopSmsProvider } from './sms/noop-sms.provider';
+import { SmsProviderFactory } from './sms/sms-provider.factory';
+import { SMS_PROVIDER } from './sms/sms-provider.interface';
+import { SmsEthiopiaSmsProvider } from './sms/sms-ethiopia-sms.provider';
 import { ShopResolver } from './shop/shop.resolver';
 import { TableResolver } from './table/table.resolver';
 import { TableService } from './table/table.service';
@@ -141,6 +146,15 @@ import type { GraphQLFormattedError } from 'graphql';
     ShopMenuQueryService,
     ProductResolver,
     ProductService,
+    AfroMessageSmsProvider,
+    NoopSmsProvider,
+    SmsEthiopiaSmsProvider,
+    SmsProviderFactory,
+    {
+      provide: SMS_PROVIDER,
+      useFactory: (factory: SmsProviderFactory) => factory.create(),
+      inject: [SmsProviderFactory],
+    },
     CustomerAuthResolver,
     CustomerAuthService,
     ShopResolver,

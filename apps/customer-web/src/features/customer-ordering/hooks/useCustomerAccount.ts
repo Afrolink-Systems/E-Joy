@@ -40,7 +40,12 @@ export function useCustomerAccount() {
     fetchPolicy: 'cache-and-network',
   })
   const [requestOtpMutation] = useMutation<{
-    requestCustomerOtp: { ok: boolean; expiresAt: string; devCode?: string | null }
+    requestCustomerOtp: {
+      ok: boolean
+      expiresAt: string
+      retryAfterSeconds?: number
+      devCode?: string | null
+    }
   }>(REQUEST_CUSTOMER_OTP)
   const [verifyOtpMutation] =
     useMutation<AuthPayloadResult<'verifyCustomerOtp'>>(VERIFY_CUSTOMER_OTP)

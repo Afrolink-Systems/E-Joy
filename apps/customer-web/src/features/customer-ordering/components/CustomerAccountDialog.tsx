@@ -1,5 +1,5 @@
-import { Fingerprint, LogOut, ReceiptText, ShieldCheck, UserRound } from 'lucide-react'
-import { useState } from 'react'
+import { Fingerprint, LogOut, ShieldCheck, UserRound } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../../../components/ui/button'
 import {
@@ -28,16 +28,25 @@ export function CustomerAccountDialog({
 }: CustomerAccountDialogProps) {
   const [phone, setPhone] = useState('')
   const [code, setCode] = useState('')
-  const [devCode, setDevCode] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [otpCooldownSeconds, setOtpCooldownSeconds] = useState(0)
+
+  useEffect(() => {
+    if (otpCooldownSeconds <= 0) return undefined
+    const intervalId = window.setInterval(() => {
+      setOtpCooldownSeconds((seconds) => Math.max(0, seconds - 1))
+    }, 1000)
+    return () => window.clearInterval(intervalId)
+  }, [otpCooldownSeconds])
 
   async function requestOtp(purpose: 'signup' | 'login') {
     setBusy(true)
     try {
       const result = await account.requestOtp(phone, purpose)
-      setDevCode(result?.devCode ?? null)
+      setOtpCooldownSeconds(result?.retryAfterSeconds ?? 120)
       toast.success('Verification code sent')
     } catch (error) {
+      setOtpCooldownSeconds(retryAfterFromError(error) ?? otpCooldownSeconds)
       toast.error(error instanceof Error ? error.message : 'Could not send code')
     } finally {
       setBusy(false)
@@ -45,6 +54,20 @@ export function CustomerAccountDialog({
   }
 
   async function verifyAndRegister() {
+    setBusy(true)
+    try {
+      await account.verifyOtp(phone, code, 'signup')
+      await account.claimOrders(rememberedOrderIds)
+      onOpenChange(false)
+      toast.success('Signed in')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not verify code')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function verifyAndRegisterPasskey() {
     setBusy(true)
     try {
       await account.verifyOtp(phone, code, 'signup')
@@ -71,19 +94,6 @@ export function CustomerAccountDialog({
       onOpenChange(false)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Passkey login failed')
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function loginWithOtp() {
-    setBusy(true)
-    try {
-      await account.verifyOtp(phone, code, 'login')
-      await account.claimOrders(rememberedOrderIds)
-      onOpenChange(false)
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Could not sign in')
     } finally {
       setBusy(false)
     }
@@ -155,33 +165,23 @@ export function CustomerAccountDialog({
               value={code}
               onChange={(event) => setCode(event.target.value)}
             />
-            {devCode ? (
-              <p className="rounded-md bg-primary/10 px-3 py-2 text-xs font-bold text-primary">
-                Dev code: {devCode}
-              </p>
-            ) : null}
             <div className="grid grid-cols-2 gap-2">
-              <Button type="button" variant="outline" className="h-11" disabled={busy || !phone} onClick={() => void requestOtp('signup')}>
-                Get code
+              <Button type="button" variant="outline" className="h-11" disabled={busy || !phone || otpCooldownSeconds > 0} onClick={() => void requestOtp('signup')}>
+                {otpCooldownSeconds > 0 ? `Retry in ${formatCooldown(otpCooldownSeconds)}` : 'Get code'}
               </Button>
               <Button type="button" className="h-11" disabled={busy || !phone || !code} onClick={() => void verifyAndRegister()}>
-                <Fingerprint className="size-4" />
-                Save
+                <ShieldCheck className="size-4" />
+                Sign in
               </Button>
             </div>
+            <Button type="button" variant="outline" className="h-11 w-full" disabled={busy || !phone || !code} onClick={() => void verifyAndRegisterPasskey()}>
+              <Fingerprint className="size-4" />
+              Sign in and add passkey
+            </Button>
             <Button type="button" variant="secondary" className="h-11 w-full" disabled={busy || !phone} onClick={() => void loginWithPasskey()}>
               <Fingerprint className="size-4" />
               Sign in with passkey
             </Button>
-            <div className="grid grid-cols-2 gap-2">
-              <Button type="button" variant="ghost" className="h-10" disabled={busy || !phone} onClick={() => void requestOtp('login')}>
-                Login code
-              </Button>
-              <Button type="button" variant="ghost" className="h-10" disabled={busy || !phone || !code} onClick={() => void loginWithOtp()}>
-                <ReceiptText className="size-4" />
-                OTP login
-              </Button>
-            </div>
           </div>
         )}
       </DialogContent>
@@ -189,3 +189,14 @@ export function CustomerAccountDialog({
   )
 }
 
+function formatCooldown(seconds: number): string {
+  const minutes = Math.floor(seconds / 60)
+  const remainingSeconds = seconds % 60
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`
+}
+
+function retryAfterFromError(error: unknown): number | null {
+  const message = error instanceof Error ? error.message : ''
+  const match = message.match(/wait\s+(\d+)\s+seconds/i)
+  return match ? Number(match[1]) : null
+}
