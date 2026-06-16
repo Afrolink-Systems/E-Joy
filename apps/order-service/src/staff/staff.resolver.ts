@@ -30,6 +30,7 @@ import { RateLimitService } from '../auth/rate-limit.service';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
 import { AdminService } from '../admin/admin.service';
+import { CustomerAuthService } from '../customer/customer-auth.service';
 import { AppLoggerService } from '../ops/app-logger.service';
 import { REALTIME_TOPICS, RealtimeService } from '../realtime/realtime.service';
 import { StaffService } from './staff.service';
@@ -67,6 +68,7 @@ export class StaffResolver {
     private readonly authTokens: AuthTokenService,
     private readonly rateLimit: RateLimitService,
     private readonly appLogger: AppLoggerService,
+    private readonly customerAuth: CustomerAuthService,
   ) {}
 
   private assertRole(
@@ -432,6 +434,38 @@ export class StaffResolver {
         scope: this.scopesForStaffRole(role),
       };
     }
+    if (rotated.session.subjectType === 'CUSTOMER') {
+      const customer = await this.customerAuth.activeCustomer(
+        rotated.session.subjectId,
+      );
+      if (!customer) {
+        await this.authSessions.revokeSession(
+          rotated.session.id,
+          'customer_inactive',
+        );
+        this.appLogger.warn('auth.refresh.failed', {
+          subjectType: 'CUSTOMER',
+          subjectId: rotated.session.subjectId,
+          reason: 'customer_inactive',
+        });
+        throw new UnauthorizedException('Session is no longer valid');
+      }
+      const signed = this.authTokens.signAccessToken(
+        this.customerAuth.customerActor(customer.id),
+        rotated.session.id,
+      );
+      setRefreshCookie(ctx.res, rotated.refreshToken);
+      this.appLogger.info('auth.refresh.success', {
+        subjectType: 'CUSTOMER',
+        subjectId: customer.id,
+      });
+      return {
+        accessToken: signed.accessToken,
+        expiresAt: signed.expiresAt,
+        role: 'customer',
+        scope: ['customer:read', 'customer:write', 'order:read'],
+      };
+    }
     const admin = await this.adminService.platformMe(rotated.session.subjectId);
     if (!admin) {
       await this.authSessions.revokeSession(
@@ -498,7 +532,7 @@ export class StaffResolver {
     @Context()
     ctx?: {
       req?: {
-        user?: { subjectType?: 'STAFF' | 'PLATFORM_ADMIN' };
+        user?: { subjectType?: 'STAFF' | 'PLATFORM_ADMIN' | 'CUSTOMER' };
       };
       res?: Response;
     },
@@ -526,7 +560,7 @@ export class StaffResolver {
     @Context()
     ctx?: {
       req?: {
-        user?: { subjectType?: 'STAFF' | 'PLATFORM_ADMIN' };
+        user?: { subjectType?: 'STAFF' | 'PLATFORM_ADMIN' | 'CUSTOMER' };
       };
       res?: Response;
     },
@@ -540,6 +574,9 @@ export class StaffResolver {
       limit: 3,
       windowMs: 10 * 60_000,
     });
+    if (ctx.req.user.subjectType === 'CUSTOMER') {
+      throw new ForbiddenException('Customer accounts do not use passwords');
+    }
     const ok =
       ctx.req.user.subjectType === 'STAFF'
         ? await this.staffService.changePassword(

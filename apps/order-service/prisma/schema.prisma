@@ -98,6 +98,7 @@ enum PlatformAdminRole {
 enum AuthSubjectType {
   STAFF
   PLATFORM_ADMIN
+  CUSTOMER
 }
 
 enum ProductStatus {
@@ -162,12 +163,65 @@ enum BannerStatus {
 model User {
   id        String   @id @default(cuid())
   phone     String   @unique
+  name      String?
+  phoneVerifiedAt DateTime?
+  status    String   @default("ACTIVE")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   orders    Order[]
   addresses UserAddress[]
+  passkeyCredentials CustomerPasskeyCredential[]
+  authChallenges CustomerAuthChallenge[]
+  otpCodes CustomerOtpCode[]
   requestedServiceTickets ServiceTicket[] @relation("ServiceTicketRequestedBy")
   assignedServiceTickets  ServiceTicket[] @relation("ServiceTicketAssignedStaff")
+}
+
+model CustomerPasskeyCredential {
+  id              String   @id @default(cuid())
+  userId          String
+  credentialId    String   @unique
+  publicKey       Bytes
+  counter         BigInt   @default(0)
+  deviceType      String?
+  backedUp        Boolean  @default(false)
+  transports      String[]
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model CustomerAuthChallenge {
+  id        String   @id @default(cuid())
+  userId    String?
+  phone     String?
+  purpose   String
+  challenge String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, usedAt])
+  @@index([phone, purpose, usedAt])
+}
+
+model CustomerOtpCode {
+  id          String   @id @default(cuid())
+  userId      String?
+  phone       String
+  purpose     String
+  codeHash    String
+  attempts    Int      @default(0)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime @default(now())
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone, purpose, consumedAt])
+  @@index([userId])
 }
 
 model Shop {

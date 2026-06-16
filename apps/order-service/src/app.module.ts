@@ -21,6 +21,7 @@ import { ShopMenuQueryService } from './order/application/shop-menu-query.servic
 import { PrismaService } from './prisma/prisma.service';
 import { PRISMA_CLIENT } from './prisma/prisma.token';
 import { JwtAuthGuard } from './auth/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from './auth/optional-jwt-auth.guard';
 import { RolesGuard } from './auth/roles.guard';
 import { JwtStrategy } from './auth/jwt.strategy';
 import { PAYMENT_PROVIDER } from './payment/payment-provider.interface';
@@ -39,6 +40,8 @@ import { AppLoggerService } from './ops/app-logger.service';
 import { RealtimeService } from './realtime/realtime.service';
 import { ProductResolver } from './product/product.resolver';
 import { ProductService } from './product/product.service';
+import { CustomerAuthResolver } from './customer/customer-auth.resolver';
+import { CustomerAuthService } from './customer/customer-auth.service';
 import { ShopResolver } from './shop/shop.resolver';
 import { TableResolver } from './table/table.resolver';
 import { TableService } from './table/table.service';
@@ -115,6 +118,7 @@ import type { GraphQLFormattedError } from 'graphql';
     PrismaService,
     { provide: PRISMA_CLIENT, useExisting: PrismaService },
     JwtAuthGuard,
+    OptionalJwtAuthGuard,
     RolesGuard,
     JwtStrategy,
     AuthSessionService,
@@ -137,6 +141,8 @@ import type { GraphQLFormattedError } from 'graphql';
     ShopMenuQueryService,
     ProductResolver,
     ProductService,
+    CustomerAuthResolver,
+    CustomerAuthService,
     ShopResolver,
     TableResolver,
     TableService,

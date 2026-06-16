@@ -8,6 +8,7 @@ import {
 } from '../../../store/useCartStore'
 import { useTableSessionStore } from '../../../store/useTableSessionStore'
 import type { CreatedOrderModel, CustomerTab, MenuItem } from '../customer-ordering.types'
+import { useCustomerAccount } from './useCustomerAccount'
 import { useCustomerMenu } from './useCustomerMenu'
 import { useCustomerOrders } from './useCustomerOrders'
 import { useCustomerSessionContext } from './useCustomerSessionContext'
@@ -58,6 +59,8 @@ export function useCustomerOrderingApp() {
   const [cartOpen, setCartOpen] = useState(false)
   const [shopInfoOpen, setShopInfoOpen] = useState(false)
   const [endSessionConfirmOpen, setEndSessionConfirmOpen] = useState(false)
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false)
+  const [saveHistoryPromptOpen, setSaveHistoryPromptOpen] = useState(false)
   const [orderNote, setOrderNote] = useState('')
   const [lastOrder, setLastOrder] = useState<CreatedOrderModel | null>(null)
   const navigate = useNavigate()
@@ -72,7 +75,11 @@ export function useCustomerOrderingApp() {
   const setFromQrParams = useTableSessionStore((s) => s.setFromQrParams)
   const totalPrice = useCartTotalPrice()
   const totalQuantity = useCartTotalQuantity()
-  const orders = useCustomerOrders({ hasTableSession: session.hasTableSession })
+  const account = useCustomerAccount()
+  const orders = useCustomerOrders({
+    hasTableSession: session.hasTableSession,
+    signedIn: account.isSignedIn,
+  })
   const menu = useCustomerMenu({
     hasTableSession: session.hasTableSession,
     search,
@@ -87,6 +94,11 @@ export function useCustomerOrderingApp() {
     onCheckoutCreated: async (order) => {
       setLastOrder(order)
       const nextOrderIds = orders.rememberOrderId(order.id)
+      if (account.isSignedIn) {
+        await account.claimOrders([order.id])
+      } else {
+        setSaveHistoryPromptOpen(true)
+      }
       await orders.refetchOrders({ ids: nextOrderIds })
     },
     shopId: session.shopId,
@@ -170,6 +182,8 @@ export function useCustomerOrderingApp() {
   return {
     activeTab,
     addItem,
+    account,
+    accountDialogOpen,
     cart,
     cartOpen,
     categories: menu.categories,
@@ -180,6 +194,7 @@ export function useCustomerOrderingApp() {
     confirmEndSession,
     customerThemePreset: menu.customerThemePreset,
     customerThemeVars: menu.customerThemeVars,
+    customerOrderIds: orders.customerOrderIds,
     deleteItem,
     detailItem,
     endSessionConfirmOpen,
@@ -198,15 +213,18 @@ export function useCustomerOrderingApp() {
     refetchOrders: orders.refetchOrders,
     removeItem,
     requestEndSession,
+    saveHistoryPromptOpen,
     search,
     selectedCategory,
     setActiveTab,
+    setAccountDialogOpen,
     setCartOpen,
     setDetailItem,
     setEndSessionConfirmOpen,
     setOrderNote,
     setSearch,
     setSelectedCategory,
+    setSaveHistoryPromptOpen,
     setShopInfoOpen,
     shopId: session.shopId,
     shopInfoOpen,

@@ -15,7 +15,7 @@ type JwtPayload = {
   role?: string;
   shopId?: string;
   scope?: string[];
-  subjectType?: 'STAFF' | 'PLATFORM_ADMIN';
+  subjectType?: 'STAFF' | 'PLATFORM_ADMIN' | 'CUSTOMER';
   platformRole?: string;
 };
 
@@ -42,7 +42,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     shopId?: string;
     scope: string[];
     sessionId: string;
-    subjectType: 'STAFF' | 'PLATFORM_ADMIN';
+    subjectType: 'STAFF' | 'PLATFORM_ADMIN' | 'CUSTOMER';
     platformRole?: string;
   }> {
     this.authTokens.assertAccessPayload(payload as Record<string, unknown>);

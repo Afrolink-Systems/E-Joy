@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { getAuthConfig } from './auth-config';
 import { AppLoggerService } from '../ops/app-logger.service';
 
-export type AuthSubjectType = 'STAFF' | 'PLATFORM_ADMIN';
+export type AuthSubjectType = 'STAFF' | 'PLATFORM_ADMIN' | 'CUSTOMER';
 
 export type SessionActor = {
   id: string;
