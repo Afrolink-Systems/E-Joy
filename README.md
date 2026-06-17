@@ -43,6 +43,19 @@ pnpm --filter order-service run prisma:generate
 pnpm dev
 ```
 
+Create `apps/order-service/.env` before starting the backend. Use
+`apps/order-service/.env.example` as the source of truth, then fill the local
+database and auth values. For the default Docker database:
+
+```bash
+DATABASE_URL=postgresql://ejoy:ejoy123@127.0.0.1:5433/ejoy
+LOCAL_DATABASE_URL=postgresql://ejoy:ejoy123@127.0.0.1:5433/ejoy
+JWT_ACCESS_SECRET=<replace-with-strong-random-secret-32-plus-chars>
+JWT_REFRESH_SECRET=<replace-with-different-strong-random-secret-32-plus-chars>
+CUSTOMER_WEB_ORIGIN=http://localhost:9601
+CUSTOMER_PASSKEY_RP_ID=localhost
+```
+
 Default local URLs:
 
 - Order service GraphQL: `http://localhost:9602/graphql`
@@ -56,9 +69,23 @@ Default local URLs:
 `docker compose run --rm prisma-init` waits for PostgreSQL and then runs these backend setup steps:
 
 ```bash
-pnpm --filter order-service exec prisma db push
+pnpm --filter order-service exec prisma migrate dev
 pnpm --filter order-service exec prisma generate
 pnpm --filter order-service run db:seed
+```
+
+Use migrations as the source of truth. Do not use `prisma db push` for normal
+development because it updates the database without creating migration files.
+When the Prisma schema changes locally, create/apply a migration with:
+
+```bash
+pnpm --filter order-service exec prisma migrate dev --name <migration-name>
+```
+
+Production and Render startup should apply committed migrations with:
+
+```bash
+pnpm --filter order-service exec prisma migrate deploy
 ```
 
 The seed script creates local demo data, including:
@@ -98,10 +125,62 @@ Inside Docker Compose, `prisma-init` uses the Docker network hostname instead:
 DATABASE_URL=postgresql://ejoy:ejoy123@postgres:5432/ejoy
 ```
 
+## Customer OTP And SMS Providers
+
+Customer accounts are optional. Guests can order without signing in; customers
+can later use phone OTP to save receipts, order history, and spending summaries.
+Passkeys are optional and use the same verified phone account.
+
+The backend selects one SMS provider with:
+
+```bash
+SMS_PROVIDER=sms_ethiopia
+```
+
+Supported values:
+
+- `sms_ethiopia` - sends through SMS Ethiopia.
+- `afromessage` - sends through AfroMessage.
+- `noop` - logs/skips sending for local development.
+
+For SMS Ethiopia:
+
+```bash
+SMS_PROVIDER=sms_ethiopia
+SMS_ETHIOPIA_API_BASE_URL=https://smsethiopia.et
+SMS_ETHIOPIA_API_KEY=<your-api-key>
+```
+
+For AfroMessage:
+
+```bash
+SMS_PROVIDER=afromessage
+AFROMESSAGE_TOKEN=<your-token>
+AFROMESSAGE_IDENTIFIER_ID=<optional-identifier>
+AFROMESSAGE_SENDER_NAME=<optional-sender-name>
+AFROMESSAGE_CALLBACK_URL=<optional-public-callback-url>
+```
+
+For local development without real SMS:
+
+```bash
+SMS_PROVIDER=noop
+CUSTOMER_OTP_EXPOSE_CODE=true
+```
+
+`CUSTOMER_OTP_EXPOSE_CODE=true` is for local development only. The customer UI
+does not display dev OTP codes.
+
+To inspect SMS provider responses while debugging:
+
+```bash
+SMS_PROVIDER_DEBUG=true
+```
+
 ## Run One App
 
 ```bash
-pnpm --filter order-service run start:dev
+pnpm --filter order-service run dev
 pnpm --filter customer-web run dev
 pnpm --filter admin-web run dev
 pnpm --filter super-admin-web run dev
@@ -195,7 +274,7 @@ Run:
 docker compose run --rm prisma-init
 ```
 
-This pushes the Prisma schema, regenerates Prisma Client, and seeds demo data.
+This applies Prisma migrations, regenerates Prisma Client, and seeds demo data.
 
 If `pnpm dev` reports that `@prisma/client` has no exported `PrismaClient`, `OrderState`, or `Prisma`, regenerate Prisma Client on the host:
 
