@@ -41,6 +41,9 @@ export class CustomerOtpRequestModel {
   @Field()
   expiresAt!: string;
 
+  @Field(() => Int, { nullable: true })
+  retryAfterSeconds?: number;
+
   @Field(() => String, { nullable: true })
   devCode?: string;
 }

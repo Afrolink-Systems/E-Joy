@@ -174,6 +174,7 @@ export class CustomerAuthService {
     ip: string;
   }): Promise<{
     expiresAt: string;
+    retryAfterSeconds: number;
     devCode?: string;
   }> {
     const phone = this.normalizePhone(input.phone);
@@ -200,6 +201,7 @@ export class CustomerAuthService {
     this.appLogger.info('customer.otp.requested', { phone, purpose });
     return {
       expiresAt: expiresAt.toISOString(),
+      retryAfterSeconds: 120,
       devCode: this.shouldExposeOtp() ? code : undefined,
     };
   }
