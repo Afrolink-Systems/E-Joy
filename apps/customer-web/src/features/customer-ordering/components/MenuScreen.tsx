@@ -11,7 +11,7 @@ import {
 } from '../../../components/ui/empty'
 import type { CartItem } from '../../../store/useCartStore'
 import type { MenuCategory, MenuItem } from '../customer-ordering.types'
-import { formatBirr, resolveProductImageUrl } from '../customer-ordering.utils'
+import { resolveProductImageUrl } from '../customer-ordering.utils'
 import { CartQuantityControl } from './CartQuantityControl'
 import { FloatingCartBar } from './FloatingCartBar'
 import { MenuSkeleton } from './MenuSkeleton'
@@ -123,7 +123,7 @@ export function MenuScreen(props: MenuScreenProps) {
         </Alert>
       ) : null}
 
-      <div className="no-scrollbar mt-4 flex shrink-0 gap-2 overflow-x-auto px-4 pb-1 max-[370px]:px-3">
+      <div className="no-scrollbar mt-4 flex shrink-0 gap-1.5 overflow-x-auto px-4 pb-1 max-[370px]:px-3">
         {props.categories.map((category, index) => (
           <CategoryButton
             key={category.name}
@@ -168,10 +168,11 @@ export function MenuScreen(props: MenuScreenProps) {
         </div>
       </div>
 
-      {hasCartItems && props.showFloatingCartBar ? (
+      {props.showFloatingCartBar ? (
         <FloatingCartBar
           actionLabel="Checkout"
           count={props.totalQuantity}
+          disabled={!hasCartItems}
           onAction={checkout}
           onCart={props.onOpenCart}
           totalPrice={props.totalPrice}
@@ -194,7 +195,7 @@ function CategoryButton({
     <button
       type="button"
       onClick={onClick}
-      className={`h-9 shrink-0 rounded-full border px-4 text-[12px] font-semibold transition max-[370px]:h-8 max-[370px]:px-3 max-[370px]:text-[11px] ${
+      className={`h-7 shrink-0 rounded-full border px-3 text-[11px] font-medium transition max-[370px]:h-6 max-[370px]:px-2.5 max-[370px]:text-[10px] ${
         active ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:text-foreground'
       }`}
       title={category.name}
@@ -238,9 +239,14 @@ function ProductRow({
         className="min-w-0 text-left transition active:scale-[0.99]"
         aria-label={`View ${item.name}`}
       >
-        <h2 className="line-clamp-2 text-[16px] font-bold leading-snug text-foreground max-[370px]:text-[15px]">{item.name}</h2>
-        <strong className="mt-2 block text-[18px] font-extrabold leading-none text-foreground max-[370px]:text-[17px]">
-          {formatBirr(item.unitPrice)}
+        <h2 className="line-clamp-2 text-[14px] font-semibold leading-snug text-foreground max-[370px]:text-[13px]">{item.name}</h2>
+        <strong className="mt-1.5 block leading-none text-foreground">
+          <span className="text-[16px] font-bold max-[370px]:text-[15px]">
+            {formatMenuPrice(item.unitPrice)}
+          </span>
+          <span className="ml-1 text-[12px] font-normal max-[370px]:text-[11px]">
+            ETB
+          </span>
         </strong>
       </button>
       <div className="justify-self-end">
@@ -255,6 +261,11 @@ function ProductRow({
       </div>
     </article>
   )
+}
+
+function formatMenuPrice(cents: number): string {
+  const amount = cents / 100
+  return Number.isInteger(amount) ? amount.toFixed(0) : amount.toFixed(2)
 }
 
 function cartQuantityForItem(cart: CartItem[], itemId: string): number {

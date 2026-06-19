@@ -1,12 +1,12 @@
-import { BottomTabs } from './components/BottomTabs'
 import { CheckoutCartDrawer } from './components/CheckoutCartDrawer'
 import { CustomerAccountDialog } from './components/CustomerAccountDialog'
 import { HomeScreen } from './components/HomeScreen'
 import { ItemDetailDrawer } from './components/ItemDetailDrawer'
 import { MenuScreen } from './components/MenuScreen'
-import { OrdersScreen } from './components/OrdersScreen'
+import { PaymentStatusScreen } from './components/PaymentStatusScreen'
 import { ShopInfoDrawer } from './components/ShopInfoDrawer'
 import { useCustomerOrderingApp } from './hooks/useCustomerOrderingApp'
+import { useNavigate } from 'react-router-dom'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,18 @@ import {
 
 export function CustomerOrderingPage() {
   const state = useCustomerOrderingApp()
+  const navigate = useNavigate()
+  const showPaymentState =
+    state.checkoutPhase === 'creating_order' ||
+    state.checkoutPhase === 'mock_payment' ||
+    state.checkoutPhase === 'success' ||
+    state.checkoutPhase === 'failed'
+  const showMenuFloatingCart =
+    !state.cartOpen &&
+    !state.detailItem &&
+    !state.accountDialogOpen &&
+    !state.shopInfoOpen &&
+    !showPaymentState
 
   return (
     <main
@@ -60,7 +72,7 @@ export function CustomerOrderingPage() {
             selectedCategory={state.selectedCategory}
             setSearch={state.setSearch}
             setSelectedCategory={state.setSelectedCategory}
-            showFloatingCartBar={!state.cartOpen && !state.detailItem}
+            showFloatingCartBar={showMenuFloatingCart}
             shopName={state.shopName}
             tableRef={state.tableRef}
             totalPrice={state.totalPrice}
@@ -69,28 +81,6 @@ export function CustomerOrderingPage() {
           />
         ) : null}
 
-        {state.activeTab === 'orders' ? (
-          <OrdersScreen
-            loading={state.ordersLoading}
-            orders={state.orders}
-            onGoOrder={() => state.setActiveTab('menu')}
-            onOpenOrder={(id) => state.navigate(`/orders/${id}`)}
-            onRefresh={() => void state.refetchOrders()}
-          />
-        ) : null}
-
-        {state.activeTab === 'home' || (state.activeTab === 'menu' && state.totalQuantity > 0) ? null : (
-          <BottomTabs
-            activeTab={state.activeTab}
-            onSelect={(tab) => {
-              if (tab === 'home') {
-                state.requestEndSession()
-                return
-              }
-              state.setActiveTab(tab)
-            }}
-          />
-        )}
       </div>
 
       <AlertDialog
@@ -143,6 +133,8 @@ export function CustomerOrderingPage() {
         rememberedOrderIds={state.customerOrderIds}
         open={state.accountDialogOpen}
         onOpenChange={state.setAccountDialogOpen}
+        themePreset={state.customerThemePreset}
+        themeVars={state.customerThemeVars}
       />
 
       <ItemDetailDrawer
@@ -174,11 +166,9 @@ export function CustomerOrderingPage() {
 
       <CheckoutCartDrawer
         cart={state.cart}
-        checkoutPhase={state.checkoutPhase}
         checkoutLoading={state.checkoutLoading}
         deleteItem={state.deleteItem}
         incrementItem={state.incrementItem}
-        lastOrder={state.lastOrder}
         note={state.orderNote}
         onClear={state.clearCart}
         open={state.cartOpen}
@@ -192,11 +182,39 @@ export function CustomerOrderingPage() {
         totalQuantity={state.totalQuantity}
       />
 
+      {showPaymentState ? (
+        <PaymentStatusScreen
+          error={state.checkoutError}
+          items={state.checkoutSnapshot}
+          lastOrder={state.lastOrder}
+          onBackToCart={() => {
+            state.resetCheckout()
+            state.setCartOpen(true)
+          }}
+          onContinueOrdering={() => {
+            state.resetCheckout()
+            state.setActiveTab('menu')
+          }}
+          onRetry={() => {
+            void state.payWithTelebirr()
+          }}
+          onViewOrder={(orderId) => {
+            state.resetCheckout()
+            navigate(`/orders/${orderId}`)
+          }}
+          phase={state.checkoutPhase}
+          themePreset={state.customerThemePreset}
+          themeVars={state.customerThemeVars}
+        />
+      ) : null}
+
       <ShopInfoDrawer
         open={state.shopInfoOpen}
         shopName={state.shopName}
         tableRef={state.tableRef}
         onOpenChange={state.setShopInfoOpen}
+        themePreset={state.customerThemePreset}
+        themeVars={state.customerThemeVars}
       />
     </main>
   )

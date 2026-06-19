@@ -2,10 +2,11 @@ import { toast } from 'sonner'
 import type { OrderStatusVariant } from './order-detail.types'
 
 export const ORDER_DETAIL_PLACEHOLDER_IMG =
-  'https://images.unsplash.com/photo-1543353071-10c8ba85a904?auto=format&fit=crop&w=320&q=80'
+  'https://picsum.photos/seed/ejoy-order-item/320/320'
 
 export function formatOrderBirr(cents: number): string {
-  return `${(cents / 100).toFixed(2)} Birr`
+  const value = cents / 100
+  return `${Number.isInteger(value) ? value.toFixed(0) : value.toFixed(2)} ETB`
 }
 
 export function resolveOrderProductImageUrl(url: string | null | undefined): string {
@@ -19,7 +20,7 @@ export function resolveOrderProductImageUrl(url: string | null | undefined): str
 
 export function orderNeedsPayment(status: string): boolean {
   const normalized = status.toUpperCase()
-  return normalized === 'PENDING_PAYMENT' || normalized === 'DRAFT' || normalized === 'PENDING'
+  return normalized === 'PENDING_PAYMENT' || normalized === 'DRAFT'
 }
 
 export function statusLabel(status: string): string {
@@ -29,7 +30,9 @@ export function statusLabel(status: string): string {
   if (normalized === 'READY') return 'Ready for pickup'
   if (normalized === 'PREPARING') return 'Preparing'
   if (normalized === 'PAID') return 'Paid'
-  if (orderNeedsPayment(status)) return 'Waiting for Telebirr payment'
+  if (normalized === 'PENDING') return 'Order sent'
+  if (normalized === 'PENDING_PAYMENT') return 'Payment pending'
+  if (normalized === 'DRAFT') return 'Order started'
   return 'Order received'
 }
 

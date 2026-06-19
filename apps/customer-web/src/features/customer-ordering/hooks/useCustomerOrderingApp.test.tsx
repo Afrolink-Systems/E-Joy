@@ -13,9 +13,6 @@ const sessionState = vi.hoisted(() => ({
 const ordersState = vi.hoisted(() => ({
   clearRememberedOrders: vi.fn(),
   customerOrderIds: [],
-  orders: [],
-  ordersLoading: false,
-  refetchOrders: vi.fn(),
   rememberOrderId: vi.fn(),
 }))
 
@@ -71,9 +68,12 @@ vi.mock('./useCustomerMenu', () => ({
 
 vi.mock('./useTelebirrCheckout', () => ({
   useTelebirrCheckout: () => ({
+    checkoutError: null,
     checkoutLoading: false,
     checkoutPhase: 'idle',
+    checkoutSnapshot: [],
     payWithTelebirr: vi.fn(),
+    resetCheckout: vi.fn(),
   }),
 }))
 

@@ -7,7 +7,7 @@ type CartQuantityControlProps = {
   onRemove: () => void
   quantity: number
   removeLabel?: string
-  size?: 'sm' | 'md'
+  size?: 'sm' | 'detail' | 'md'
 }
 
 export function CartQuantityControl({
@@ -19,10 +19,13 @@ export function CartQuantityControl({
   removeLabel = 'Decrease quantity',
   size = 'sm',
 }: CartQuantityControlProps) {
-  const buttonSize = size === 'md' ? 'size-9' : 'size-7'
-  const iconSize = size === 'md' ? 'size-5' : 'size-3.5'
-  const textSize = size === 'md' ? 'text-[17px]' : 'text-[15px]'
-  const gap = size === 'md' ? 'gap-2' : 'gap-1.5'
+  const buttonSize =
+    size === 'md' ? 'size-9' : size === 'detail' ? 'size-7' : 'size-[22px]'
+  const iconSize =
+    size === 'md' ? 'size-5' : size === 'detail' ? 'size-3.5' : 'size-3'
+  const textSize =
+    size === 'md' ? 'text-[17px]' : size === 'detail' ? 'text-[14px]' : 'text-[13px]'
+  const gap = size === 'md' ? 'gap-2' : 'gap-1'
 
   if (quantity <= 0) {
     return (
@@ -47,7 +50,7 @@ export function CartQuantityControl({
       >
         <Minus className={iconSize} strokeWidth={2.5} />
       </button>
-      <span className={`min-w-5 text-center ${textSize} font-semibold tabular-nums`}>
+      <span className={`min-w-4 text-center ${textSize} font-medium tabular-nums`}>
         {quantity}
       </span>
       <button

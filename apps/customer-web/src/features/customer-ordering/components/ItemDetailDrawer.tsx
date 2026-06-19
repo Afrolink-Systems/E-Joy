@@ -2,7 +2,7 @@ import { ArrowLeft, ChevronDown, ClipboardList, MessageSquareText } from 'lucide
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { CustomerThemeStyle, MenuItem } from '../customer-ordering.types'
-import { formatBirr, resolveProductImageUrl } from '../customer-ordering.utils'
+import { resolveProductImageUrl } from '../customer-ordering.utils'
 import { CartQuantityControl } from './CartQuantityControl'
 import { FloatingCartBar } from './FloatingCartBar'
 
@@ -33,12 +33,12 @@ export function ItemDetailDrawer({
   themePreset,
   themeVars,
 }: ItemDetailDrawerProps) {
-  const [detailsOpen, setDetailsOpen] = useState(true)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const [reviewsOpen, setReviewsOpen] = useState(false)
 
   useEffect(() => {
     if (!item) return
-    setDetailsOpen(true)
+    setDetailsOpen(false)
     setReviewsOpen(false)
   }, [item])
 
@@ -64,29 +64,34 @@ export function ItemDetailDrawer({
         <div className="relative">
           <button
             type="button"
-            className="absolute left-4 top-[calc(env(safe-area-inset-top)+12px)] z-10 grid size-10 place-items-center rounded-full bg-card/95 text-primary ring-1 ring-border transition active:scale-95"
+            className="absolute left-4 top-[calc(env(safe-area-inset-top)+12px)] z-10 grid size-8 place-items-center rounded-full bg-card/95 text-primary ring-1 ring-border transition active:scale-95"
             onClick={() => onOpenChange(false)}
             aria-label="Back to menu"
           >
-            <ArrowLeft className="size-5" strokeWidth={2.2} />
+            <ArrowLeft className="size-4" strokeWidth={2.2} />
           </button>
           <img
-            className="aspect-[1.06/1] w-full object-cover"
+            className="h-[42svh] max-h-[330px] min-h-[245px] w-full object-cover max-[370px]:h-[38svh] max-[370px]:min-h-[215px]"
             src={resolveProductImageUrl(item.imageUrl)}
             alt=""
           />
         </div>
 
-        <section className="px-5 pb-2 pt-5 max-[370px]:px-4">
-          <h1 className="text-[25px] font-extrabold leading-tight text-foreground max-[370px]:text-[23px]">
+        <section className="px-5 pb-1 pt-4 max-[370px]:px-4">
+          <h1 className="text-[21px] font-bold leading-tight text-foreground max-[370px]:text-[19px]">
             {item.name}
           </h1>
-          <p className="mt-2 max-w-[330px] text-[14px] font-medium leading-6 text-muted-foreground max-[370px]:text-[13px] max-[370px]:leading-5">
+          <p className="mt-1.5 max-w-[330px] text-[12px] font-normal leading-5 text-muted-foreground max-[370px]:text-[11px] max-[370px]:leading-4">
             {description}
           </p>
-          <div className="mt-4 flex items-center justify-between gap-4">
-            <strong className="text-[28px] font-bold leading-none text-primary max-[370px]:text-[25px]">
-              {formatBirr(item.unitPrice)}
+          <div className="mt-3 flex items-center justify-between gap-4">
+            <strong className="leading-none text-primary">
+              <span className="text-[22px] font-semibold max-[370px]:text-[19px]">
+                {formatDetailPrice(item.unitPrice)}
+              </span>
+              <span className="ml-1 text-[13px] font-normal max-[370px]:text-[11px]">
+                ETB
+              </span>
             </strong>
             <CartQuantityControl
               addLabel={`Add ${item.name}`}
@@ -95,7 +100,7 @@ export function ItemDetailDrawer({
               onRemove={onRemove}
               quantity={cartQuantity}
               removeLabel={`Remove ${item.name}`}
-              size="md"
+              size="detail"
             />
           </div>
         </section>
@@ -117,15 +122,14 @@ export function ItemDetailDrawer({
         />
       </div>
 
-      {cartTotalPrice > 0 ? (
-        <FloatingCartBar
-          actionLabel="Checkout"
-          count={cartTotalQuantity}
-          onAction={checkout}
-          onCart={onOpenCart}
-          totalPrice={cartTotalPrice}
-        />
-      ) : null}
+      <FloatingCartBar
+        actionLabel="Checkout"
+        count={cartTotalQuantity}
+        disabled={cartTotalQuantity === 0}
+        onAction={checkout}
+        onCart={onOpenCart}
+        totalPrice={cartTotalPrice}
+      />
     </section>
   )
 }
@@ -146,25 +150,30 @@ function InfoCard({
   tone?: 'soft' | 'strong'
 }) {
   return (
-    <section className="mx-5 mt-3 rounded-2xl bg-card text-card-foreground shadow-[0_8px_22px_rgba(20,20,20,0.045)] max-[370px]:mx-4">
+    <section className="mx-5 mt-2.5 rounded-xl bg-card text-card-foreground shadow-[0_6px_16px_rgba(20,20,20,0.035)] max-[370px]:mx-4">
       <button
         type="button"
         onClick={onToggle}
-        className="grid w-full grid-cols-[38px_minmax(0,1fr)_20px] items-center gap-3 px-4 py-4 text-left"
+        className="grid w-full grid-cols-[30px_minmax(0,1fr)_18px] items-center gap-2.5 px-3.5 py-3 text-left"
       >
-        <span className={`grid size-9 place-items-center rounded-full ${tone === 'strong' ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
-          <Icon className="size-5" strokeWidth={2.1} />
+        <span className={`grid size-7 place-items-center rounded-full ${tone === 'strong' ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}`}>
+          <Icon className="size-4" strokeWidth={2} />
         </span>
-        <h2 className="truncate text-[16px] font-bold leading-tight">{title}</h2>
-        <ChevronDown className={`size-4 text-primary transition ${open ? 'rotate-180' : ''}`} strokeWidth={2.4} />
+        <h2 className="truncate text-[14px] font-semibold leading-tight">{title}</h2>
+        <ChevronDown className={`size-3.5 text-primary transition ${open ? 'rotate-180' : ''}`} strokeWidth={2.3} />
       </button>
       {open ? (
-        <p className="px-4 pb-4 pl-[68px] text-[13px] font-medium leading-5 text-muted-foreground">
+        <p className="px-3.5 pb-3 pl-[54px] text-[12px] font-normal leading-5 text-muted-foreground">
           {body}
         </p>
       ) : null}
     </section>
   )
+}
+
+function formatDetailPrice(cents: number): string {
+  const amount = cents / 100
+  return Number.isInteger(amount) ? amount.toFixed(0) : amount.toFixed(2)
 }
 
 function itemDescription(item: MenuItem): string {

@@ -4,9 +4,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CustomerOrderingPage } from './CustomerOrderingPage'
 
 const useCustomerOrderingAppMock = vi.hoisted(() => vi.fn())
+const navigateMock = vi.hoisted(() => vi.fn())
 
 vi.mock('./hooks/useCustomerOrderingApp', () => ({
   useCustomerOrderingApp: useCustomerOrderingAppMock,
+}))
+
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => navigateMock,
 }))
 
 vi.mock('./components/HomeScreen', () => ({
@@ -14,11 +19,14 @@ vi.mock('./components/HomeScreen', () => ({
 }))
 
 vi.mock('./components/MenuScreen', () => ({
-  MenuScreen: () => <div>Menu screen</div>,
-}))
-
-vi.mock('./components/OrdersScreen', () => ({
-  OrdersScreen: () => <div>Orders screen</div>,
+  MenuScreen: ({ onOpenHome }: { onOpenHome: () => void }) => (
+    <div>
+      Menu screen
+      <button type="button" onClick={onOpenHome}>
+        Go home
+      </button>
+    </div>
+  ),
 }))
 
 vi.mock('./components/CheckoutCartDrawer', () => ({
@@ -57,7 +65,9 @@ function buildState(overrides: Record<string, unknown> = {}) {
     cartOpen: false,
     categories: [],
     checkoutLoading: false,
+    checkoutError: null,
     checkoutPhase: 'idle',
+    checkoutSnapshot: [],
     clearCart: vi.fn(),
     clearSession: vi.fn(),
     confirmEndSession: vi.fn(),
@@ -73,18 +83,15 @@ function buildState(overrides: Record<string, unknown> = {}) {
     lastOrder: null,
     loading: false,
     menuRows: [],
-    navigate: vi.fn(),
     orderNote: '',
-    orders: [],
-    ordersLoading: false,
     payWithTelebirr: vi.fn(),
     refetch: vi.fn(),
-    refetchOrders: vi.fn(),
     removeItem: vi.fn(),
     requestEndSession: vi.fn(),
+    resetCheckout: vi.fn(),
     saveHistoryPromptOpen: false,
     search: '',
-    selectedCategory: 'All',
+    selectedCategory: '',
     setActiveTab: vi.fn(),
     setAccountDialogOpen: vi.fn(),
     setCartOpen: vi.fn(),
@@ -112,36 +119,21 @@ describe('CustomerOrderingPage', () => {
     vi.clearAllMocks()
   })
 
-  it('asks for confirmation when Home is selected during a table session', async () => {
+  it('asks for confirmation when Home is selected from the menu header during a table session', async () => {
     const user = userEvent.setup()
     const state = buildState()
     useCustomerOrderingAppMock.mockReturnValue(state)
 
     render(<CustomerOrderingPage />)
 
-    await user.click(screen.getByRole('button', { name: 'Home' }))
+    await user.click(screen.getByRole('button', { name: 'Go home' }))
 
     expect(state.requestEndSession).toHaveBeenCalledTimes(1)
     expect(state.setActiveTab).not.toHaveBeenCalledWith('home')
   })
 
-  it('keeps Menu and Orders as direct tab switches', async () => {
-    const user = userEvent.setup()
+  it('does not render the old bottom navigation on the menu', () => {
     const state = buildState()
-    useCustomerOrderingAppMock.mockReturnValue(state)
-
-    render(<CustomerOrderingPage />)
-
-    await user.click(screen.getByRole('button', { name: 'Orders' }))
-    await user.click(screen.getByRole('button', { name: 'Order' }))
-
-    expect(state.setActiveTab).toHaveBeenCalledWith('orders')
-    expect(state.setActiveTab).toHaveBeenCalledWith('menu')
-    expect(state.requestEndSession).not.toHaveBeenCalled()
-  })
-
-  it('hides bottom tabs on the menu when the sticky cart bar is active', () => {
-    const state = buildState({ totalQuantity: 2 })
     useCustomerOrderingAppMock.mockReturnValue(state)
 
     render(<CustomerOrderingPage />)
@@ -169,5 +161,57 @@ describe('CustomerOrderingPage', () => {
 
     await user.click(screen.getByRole('button', { name: 'End session' }))
     expect(state.confirmEndSession).toHaveBeenCalledTimes(1)
+  })
+
+  it('shows the mock payment success page with submitted items', async () => {
+    const user = userEvent.setup()
+    const state = buildState({
+      checkoutPhase: 'success',
+      checkoutSnapshot: [
+        { id: 'p1', name: 'Chechebsa', price: 26000, quantity: 1 },
+      ],
+      lastOrder: {
+        id: 'order-1',
+        orderNo: 'ORD-1',
+        paymentState: 'SUCCESS',
+        state: 'PAID',
+        totalAmount: 26000,
+      },
+    })
+    useCustomerOrderingAppMock.mockReturnValue(state)
+
+    render(<CustomerOrderingPage />)
+
+    expect(screen.getByText('Order sent')).toBeInTheDocument()
+    expect(screen.getByText('Chechebsa')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'View order' }))
+
+    expect(state.resetCheckout).toHaveBeenCalledTimes(1)
+    expect(navigateMock).toHaveBeenCalledWith('/orders/order-1')
+  })
+
+  it('shows full-page payment failure actions', async () => {
+    const user = userEvent.setup()
+    const state = buildState({
+      checkoutError: 'Order service unavailable',
+      checkoutPhase: 'failed',
+      checkoutSnapshot: [
+        { id: 'p1', name: 'Chechebsa', price: 26000, quantity: 1 },
+      ],
+    })
+    useCustomerOrderingAppMock.mockReturnValue(state)
+
+    render(<CustomerOrderingPage />)
+
+    expect(screen.getByText('Payment did not finish')).toBeInTheDocument()
+    expect(screen.getByText('Order service unavailable')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Back to cart' }))
+    expect(state.resetCheckout).toHaveBeenCalledTimes(1)
+    expect(state.setCartOpen).toHaveBeenCalledWith(true)
+
+    await user.click(screen.getByRole('button', { name: 'Try again' }))
+    expect(state.payWithTelebirr).toHaveBeenCalledTimes(1)
   })
 })

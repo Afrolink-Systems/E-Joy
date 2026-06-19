@@ -12,10 +12,8 @@ export function OrderDetailRoute() {
   return (
     <OrderDetailPage
       orderId={orderId}
-      onBack={() => {
-        if (window.history.length > 1) navigate(-1)
-        else navigate('/', { replace: true })
-      }}
+      onBack={() => navigate('/', { replace: true })}
+      onContinueOrdering={() => navigate('/', { replace: true })}
     />
   )
 }

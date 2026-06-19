@@ -1,5 +1,4 @@
 import { gql } from '@apollo/client'
-import type { OrderHistoryRow } from './getOrders'
 
 export const REQUEST_CUSTOMER_OTP = gql`
   mutation RequestCustomerOtp($input: RequestCustomerOtpInput!) {
@@ -96,25 +95,6 @@ export const CLAIM_CUSTOMER_ORDERS = gql`
   }
 `
 
-export const CUSTOMER_ORDERS = gql`
-  query CustomerOrders {
-    customerOrders {
-      id
-      totalAmount
-      status
-      createdAt
-      items {
-        quantity
-        priceAtTime
-        product {
-          name
-          imageUrl
-        }
-      }
-    }
-  }
-`
-
 export const CUSTOMER_EXPENSE_SUMMARY = gql`
   query CustomerExpenseSummary {
     customerExpenseSummary {
@@ -154,8 +134,4 @@ export type CustomerExpenseSummary = {
     orderCount: number
     totalAmount: number
   }>
-}
-
-export type CustomerOrdersData = {
-  customerOrders: OrderHistoryRow[]
 }

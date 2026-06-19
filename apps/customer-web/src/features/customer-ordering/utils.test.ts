@@ -7,7 +7,6 @@ import {
   persistCustomerOrderIds,
   readCustomerOrderIds,
   resolveProductImageUrl,
-  tabLabel,
 } from './customer-ordering.utils'
 
 vi.mock('../../lib/mockTelebirrRedirectUrl', () => ({
@@ -53,9 +52,7 @@ describe('customer ordering utilities', () => {
     expect(readCustomerOrderIds()).toEqual([])
   })
 
-  it('keeps cart key and tab labels stable', () => {
+  it('keeps cart keys stable', () => {
     expect(buildCartKey('p1', ' mild ')).toBe('p1::mild')
-    expect(tabLabel('menu')).toBe('Order')
-    expect(tabLabel('orders')).toBe('Orders')
   })
 })

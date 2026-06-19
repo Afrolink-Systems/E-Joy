@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import {
   useCartStore,
@@ -17,7 +16,7 @@ import { useTelebirrCheckout } from './useTelebirrCheckout'
 const CUSTOMER_ACTIVE_TAB_KEY = 'ejoy_customer_active_tab'
 
 function isCustomerTab(value: string | null): value is CustomerTab {
-  return value === 'home' || value === 'menu' || value === 'orders'
+  return value === 'home' || value === 'menu'
 }
 
 function readStoredActiveTab(hasTableSession: boolean): CustomerTab {
@@ -63,7 +62,6 @@ export function useCustomerOrderingApp() {
   const [saveHistoryPromptOpen, setSaveHistoryPromptOpen] = useState(false)
   const [orderNote, setOrderNote] = useState('')
   const [lastOrder, setLastOrder] = useState<CreatedOrderModel | null>(null)
-  const navigate = useNavigate()
 
   const cart = useCartStore((s) => s.items)
   const addItem = useCartStore((s) => s.addItem)
@@ -76,10 +74,7 @@ export function useCustomerOrderingApp() {
   const totalPrice = useCartTotalPrice()
   const totalQuantity = useCartTotalQuantity()
   const account = useCustomerAccount()
-  const orders = useCustomerOrders({
-    hasTableSession: session.hasTableSession,
-    signedIn: account.isSignedIn,
-  })
+  const orders = useCustomerOrders()
   const menu = useCustomerMenu({
     hasTableSession: session.hasTableSession,
     search,
@@ -93,13 +88,19 @@ export function useCustomerOrderingApp() {
     note: orderNote,
     onCheckoutCreated: async (order) => {
       setLastOrder(order)
-      const nextOrderIds = orders.rememberOrderId(order.id)
+      orders.rememberOrderId(order.id)
       if (account.isSignedIn) {
         await account.claimOrders([order.id])
-      } else {
+      }
+    },
+    onMockPaymentSuccess: () => {
+      clearCart()
+      setCartOpen(false)
+      setDetailItem(null)
+      setOrderNote('')
+      if (!account.isSignedIn) {
         setSaveHistoryPromptOpen(true)
       }
-      await orders.refetchOrders({ ids: nextOrderIds })
     },
     shopId: session.shopId,
     tableRef: session.tableRef,
@@ -153,8 +154,8 @@ export function useCustomerOrderingApp() {
     const path = window.location.pathname.replace(/\/$/, '') || '/'
     if (path.endsWith('/order-success') || path === '/order-success') {
       toast.success('Payment received. Your order was sent to the kitchen.')
-      writeStoredActiveTab('orders', true)
-      setActiveTabState('orders')
+      writeStoredActiveTab('menu', true)
+      setActiveTabState('menu')
       clearCart()
       window.history.replaceState({}, document.title, '/')
     }
@@ -189,12 +190,14 @@ export function useCustomerOrderingApp() {
     categories: menu.categories,
     checkoutPhase: checkout.checkoutPhase,
     checkoutLoading: checkout.checkoutLoading,
+    checkoutError: checkout.checkoutError,
     clearCart,
     clearSession: clearCustomerSession,
     confirmEndSession,
     customerThemePreset: menu.customerThemePreset,
     customerThemeVars: menu.customerThemeVars,
     customerOrderIds: orders.customerOrderIds,
+    checkoutSnapshot: checkout.checkoutSnapshot,
     deleteItem,
     detailItem,
     endSessionConfirmOpen,
@@ -204,15 +207,12 @@ export function useCustomerOrderingApp() {
     lastOrder,
     loading: menu.loading,
     menuRows: menu.menuRows,
-    navigate,
     orderNote,
-    orders: orders.orders,
-    ordersLoading: orders.ordersLoading,
     payWithTelebirr: checkout.payWithTelebirr,
     refetch: menu.refetch,
-    refetchOrders: orders.refetchOrders,
     removeItem,
     requestEndSession,
+    resetCheckout: checkout.resetCheckout,
     saveHistoryPromptOpen,
     search,
     selectedCategory,

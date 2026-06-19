@@ -1,13 +1,10 @@
 import { getOrderServiceHttpOrigin } from '../../lib/mockTelebirrRedirectUrl'
 import { CUSTOMER_ORDER_IDS_KEY } from '../../lib/customerLocalData'
-import type { CustomerTab } from './customer-ordering.types'
 
 export { CUSTOMER_ORDER_IDS_KEY }
 
 export const PLACEHOLDER_FOOD =
   'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=420&q=80'
-
-export const SPICE_OPTIONS = ['No spice', 'Mild', 'Medium', 'Extra spicy']
 
 export function readCustomerOrderIds(): string[] {
   try {
@@ -50,12 +47,3 @@ export function buildCartKey(productId: string, remark?: string): string {
   return `${productId}::${remark?.trim() ?? ''}`
 }
 
-export function tabLabel(tab: CustomerTab): string {
-  if (tab === 'home') return 'Home'
-  if (tab === 'menu') return 'Order'
-  return 'Orders'
-}
-
-export function categoryCartCount(category: string, counts: Map<string, number>, total: number): number {
-  return category === 'All' ? total : counts.get(category) ?? 0
-}

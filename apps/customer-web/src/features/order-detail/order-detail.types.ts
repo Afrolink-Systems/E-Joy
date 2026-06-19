@@ -3,4 +3,5 @@ export type OrderStatusVariant = 'default' | 'secondary' | 'destructive' | 'outl
 export type OrderDetailPageProps = {
   orderId: string
   onBack: () => void
+  onContinueOrdering: () => void
 }

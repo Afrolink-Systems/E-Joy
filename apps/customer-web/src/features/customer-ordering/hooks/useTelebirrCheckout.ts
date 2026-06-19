@@ -1,18 +1,17 @@
 import { useMutation } from '@apollo/client/react'
 import { CREATE_ORDER_MUTATION } from '../../../graphql/createOrder'
-import {
-  INITIATE_PAYMENT_MUTATION,
-  type InitiatePaymentData,
-} from '../../../graphql/initiatePayment'
 import { useState } from 'react'
 import type { CartItem } from '../../../store/useCartStore'
 import type { CreatedOrderModel, CreateOrderData } from '../customer-ordering.types'
+
+const MOCK_TELEBIRR_DELAY_MS = 3000
 
 type UseTelebirrCheckoutParams = {
   cart: CartItem[]
   hasTableSession: boolean
   note: string
   onCheckoutCreated: (order: CreatedOrderModel) => Promise<void>
+  onMockPaymentSuccess: (order: CreatedOrderModel) => Promise<void> | void
   shopId: string
   tableRef: string
 }
@@ -20,8 +19,8 @@ type UseTelebirrCheckoutParams = {
 export type CheckoutPhase =
   | 'idle'
   | 'creating_order'
-  | 'contacting_telebirr'
-  | 'opening_checkout'
+  | 'mock_payment'
+  | 'success'
   | 'failed'
 
 export function useTelebirrCheckout({
@@ -29,17 +28,21 @@ export function useTelebirrCheckout({
   hasTableSession,
   note,
   onCheckoutCreated,
+  onMockPaymentSuccess,
   shopId,
   tableRef,
 }: UseTelebirrCheckoutParams) {
   const [checkoutPhase, setCheckoutPhase] = useState<CheckoutPhase>('idle')
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+  const [checkoutSnapshot, setCheckoutSnapshot] = useState<CartItem[]>([])
   const [createOrder, { loading: checkoutLoading }] =
     useMutation<CreateOrderData>(CREATE_ORDER_MUTATION)
-  const [initiatePayment, { loading: paymentLoading }] =
-    useMutation<InitiatePaymentData>(INITIATE_PAYMENT_MUTATION)
 
   async function payWithTelebirr() {
     if (!cart.length || !hasTableSession) return
+    const snapshot = cart.map((item) => ({ ...item }))
+    setCheckoutSnapshot(snapshot)
+    setCheckoutError(null)
     setCheckoutPhase('creating_order')
     const idempotencyKey =
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -71,51 +74,35 @@ export function useTelebirrCheckout({
         throw new Error(message)
       }
       await onCheckoutCreated(payload.order)
-      setCheckoutPhase('contacting_telebirr')
-      const paymentResult = await initiatePayment({
-        variables: {
-          input: {
-            orderId: payload.order.id,
-            channel: 'TELEBIRR_H5',
-          },
-        },
-      })
-      const paymentPayload = paymentResult.data?.initiatePayment
-      const toPayUrl = paymentPayload?.toPayUrl ?? paymentPayload?.rawRequest
-      if (!paymentPayload?.ok || !toPayUrl) {
-        const message =
-          paymentPayload?.error?.message ??
-          paymentPayload?.error?.code ??
-          'Could not start Telebirr checkout.'
-        throw new Error(message)
-      }
-      setCheckoutPhase('opening_checkout')
-      openTelebirrCheckout(toPayUrl)
-      window.setTimeout(() => setCheckoutPhase('idle'), 900)
+      setCheckoutPhase('mock_payment')
+      await waitForMockPayment()
+      await onMockPaymentSuccess(payload.order)
+      setCheckoutPhase('success')
     } catch (error) {
+      const message = error instanceof Error ? error.message : 'Payment failed'
+      setCheckoutError(message)
       setCheckoutPhase('failed')
-      throw error
     }
   }
 
+  function resetCheckout() {
+    setCheckoutPhase('idle')
+    setCheckoutError(null)
+    setCheckoutSnapshot([])
+  }
+
   return {
+    checkoutError,
     checkoutPhase,
-    checkoutLoading: checkoutLoading || paymentLoading,
+    checkoutLoading,
+    checkoutSnapshot,
     payWithTelebirr,
+    resetCheckout,
   }
 }
 
-function openTelebirrCheckout(toPayUrl: string) {
-  try {
-    const anchor = document.createElement('a')
-    anchor.href = toPayUrl
-    anchor.target = '_blank'
-    anchor.rel = 'noopener noreferrer external'
-    anchor.style.display = 'none'
-    document.body.appendChild(anchor)
-    anchor.click()
-    anchor.remove()
-  } catch {
-    window.location.href = toPayUrl
-  }
+function waitForMockPayment() {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(resolve, MOCK_TELEBIRR_DELAY_MS)
+  })
 }

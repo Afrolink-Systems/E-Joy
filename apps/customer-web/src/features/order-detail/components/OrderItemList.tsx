@@ -15,20 +15,20 @@ export function OrderItemList({ items, orderId }: OrderItemListProps) {
       {items.map((item, index) => (
         <article
           key={`${orderId}-${index}`}
-          className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-3 border-b border-border py-3 last:border-b-0 max-[370px]:grid-cols-[52px_minmax(0,1fr)_auto]"
+          className="grid grid-cols-[52px_minmax(0,1fr)_auto] items-center gap-3 border-b border-border py-3 last:border-b-0 max-[370px]:grid-cols-[48px_minmax(0,1fr)_auto]"
         >
           <img
             src={resolveOrderProductImageUrl(item.product.imageUrl)}
             alt=""
-            className="size-[58px] rounded-[12px] bg-muted object-cover max-[370px]:size-[52px]"
+            className="size-[52px] rounded-xl bg-muted object-cover max-[370px]:size-[48px]"
           />
           <div className="min-w-0">
-            <h3 className="truncate text-[15px] font-bold text-card-foreground">{item.product.name}</h3>
-            <p className="mt-1.5 inline-flex rounded-full bg-muted px-2.5 py-0.5 text-[12px] font-bold text-muted-foreground">
+            <h3 className="truncate text-[14px] font-semibold text-card-foreground">{item.product.name}</h3>
+            <p className="mt-1.5 inline-flex rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">
               x{item.quantity}
             </p>
           </div>
-          <strong className="whitespace-nowrap text-right text-[15px] font-extrabold text-card-foreground">
+          <strong className="whitespace-nowrap text-right text-[14px] font-semibold text-card-foreground">
             {formatOrderBirr(item.priceAtTime * item.quantity)}
           </strong>
         </article>

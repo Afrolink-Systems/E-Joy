@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react'
 import type { ShopMenuProduct } from '../../graphql/shopMenu'
 
-export type CustomerTab = 'home' | 'menu' | 'orders'
+export type CustomerTab = 'home' | 'menu'
 export type MenuItem = ShopMenuProduct
 
 export type MenuCategory = {

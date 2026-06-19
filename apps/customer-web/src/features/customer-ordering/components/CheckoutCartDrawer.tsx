@@ -1,24 +1,17 @@
-import { ArrowLeft, CheckCircle2, ClipboardCheck, CreditCard, ShoppingBag, Trash2 } from 'lucide-react'
-import { useState } from 'react'
-import { toast } from 'sonner'
-import { StatusButton, type StatusButtonStatus } from '../../../components/status-button'
-import { Alert, AlertTitle } from '../../../components/ui/alert'
+import { ArrowLeft, ClipboardCheck, ShoppingBag, Trash2 } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '../../../components/ui/empty'
 import { InputGroup, InputGroupTextarea } from '../../../components/ui/input-group'
 import type { CartItem } from '../../../store/useCartStore'
-import type { CheckoutPhase } from '../hooks/useTelebirrCheckout'
-import type { CreatedOrderModel, CustomerThemeStyle } from '../customer-ordering.types'
+import type { CustomerThemeStyle } from '../customer-ordering.types'
 import { buildCartKey, formatBirr, resolveProductImageUrl } from '../customer-ordering.utils'
 import { QuantityStepper } from './QuantityStepper'
 
 type CheckoutCartDrawerProps = {
   cart: CartItem[]
   checkoutLoading: boolean
-  checkoutPhase: CheckoutPhase
   deleteItem: (id: string, remark?: string) => void
   incrementItem: (id: string, remark?: string) => void
-  lastOrder: CreatedOrderModel | null
   note: string
   onClear: () => void
   onOpenChange: (open: boolean) => void
@@ -33,21 +26,12 @@ type CheckoutCartDrawerProps = {
 }
 
 export function CheckoutCartDrawer(props: CheckoutCartDrawerProps) {
-  const [error, setError] = useState<string | null>(null)
-  const isWorking = props.checkoutLoading || ['creating_order', 'contacting_telebirr', 'opening_checkout'].includes(props.checkoutPhase)
-  const locked = isWorking
+  const locked = props.checkoutLoading
 
   if (!props.open) return null
 
   async function submit() {
-    setError(null)
-    try {
-      await props.onPay()
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Payment failed'
-      setError(message)
-      toast.error(message)
-    }
+    await props.onPay()
   }
 
   return (
@@ -140,30 +124,20 @@ export function CheckoutCartDrawer(props: CheckoutCartDrawerProps) {
           </InputGroup>
         </label>
 
-        {isWorking ? <PaymentProgress phase={props.checkoutPhase} /> : null}
-        {props.lastOrder ? (
-          <Alert className="mt-3 rounded-2xl border-primary/20 bg-primary/10 text-primary">
-            <CheckCircle2 />
-            <AlertTitle>Last order: {props.lastOrder.orderNo}</AlertTitle>
-          </Alert>
-        ) : null}
       </div>
 
       <footer className="fixed bottom-0 left-1/2 z-10 grid w-[min(480px,100vw)] -translate-x-1/2 grid-cols-[0.78fr_1fr] gap-3 border-t border-border bg-background/96 px-4 py-3 pb-[calc(14px+env(safe-area-inset-bottom))] backdrop-blur">
         <Button type="button" variant="outline" className="h-12 rounded-full border-border bg-card font-bold" disabled={locked} onClick={() => props.onOpenChange(false)}>
           Modify items
         </Button>
-        <StatusButton
-          className="[&_button]:h-12 [&_button]:rounded-full [&_button]:text-[15px] [&_button]:font-bold"
-          status={buttonStatus(props.checkoutPhase, props.checkoutLoading, Boolean(error))}
-          idleText="Pay with Telebirr"
-          loadingText={buttonText(props.checkoutPhase)}
-          successText="Opening"
-          errorText="Try again"
-          disabled={!props.cart.length}
+        <Button
+          type="button"
+          className="h-12 rounded-full bg-primary text-[15px] font-bold text-primary-foreground hover:bg-primary/90"
+          disabled={!props.cart.length || locked}
           onClick={() => void submit()}
-          trailing={null}
-        />
+        >
+          Pay with Telebirr
+        </Button>
       </footer>
     </section>
   )
@@ -209,50 +183,5 @@ function CartLine({
         quantity={line.quantity}
       />
     </article>
-  )
-}
-
-function buttonStatus(phase: CheckoutPhase, loading: boolean, hasError: boolean): StatusButtonStatus {
-  if (hasError || phase === 'failed') return 'error'
-  if (phase === 'opening_checkout') return 'success'
-  if (loading || phase === 'creating_order' || phase === 'contacting_telebirr') return 'loading'
-  return 'idle'
-}
-
-function buttonText(phase: CheckoutPhase): string {
-  if (phase === 'creating_order') return 'Creating order'
-  if (phase === 'contacting_telebirr') return 'Preparing Telebirr'
-  if (phase === 'opening_checkout') return 'Opening checkout'
-  return 'Processing'
-}
-
-function PaymentProgress({ phase }: { phase: CheckoutPhase }) {
-  const steps = [
-    ['creating_order', 'Creating your order'],
-    ['contacting_telebirr', 'Preparing Telebirr'],
-    ['opening_checkout', 'Opening checkout'],
-  ] as const
-  const activeIndex = Math.max(0, steps.findIndex(([id]) => id === phase))
-
-  return (
-    <div className="mt-3 rounded-2xl border border-border bg-card px-3.5 py-3.5 text-card-foreground">
-      <div className="flex items-center gap-3">
-        <span className="grid size-8 place-items-center rounded-full bg-primary/10 text-primary">
-          <CreditCard className="size-4" />
-        </span>
-        <div>
-          <p className="text-[14px] font-bold">Payment in progress</p>
-          <p className="text-xs font-medium text-muted-foreground">Keep this page open while Telebirr starts.</p>
-        </div>
-      </div>
-      <div className="mt-3 grid gap-2">
-        {steps.map(([id, label], index) => (
-          <div key={id} className="flex items-center gap-3 text-[13px] font-semibold">
-            <span className={`size-2 rounded-full ${index <= activeIndex ? 'bg-primary' : 'bg-muted'}`} />
-            <span className={index <= activeIndex ? 'text-card-foreground' : 'text-muted-foreground'}>{label}</span>
-          </div>
-        ))}
-      </div>
-    </div>
   )
 }

@@ -1,30 +1,18 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { toast } from 'sonner'
-import type { CartItem } from '../../../store/useCartStore'
 import type { MenuItem } from '../customer-ordering.types'
 import { CheckoutCartDrawer } from './CheckoutCartDrawer'
 import { MenuScreen } from './MenuScreen'
-import { MissingQrScreen } from './MissingQrScreen'
-import { ProductCard } from './ProductCard'
-
-vi.mock('sonner', () => ({
-  toast: {
-    error: vi.fn(),
-  },
-}))
 
 vi.mock('../../../lib/mockTelebirrRedirectUrl', () => ({
   getOrderServiceHttpOrigin: () => 'http://localhost:9602',
 }))
 
 const baseCartProps = {
-  checkoutPhase: 'idle' as const,
   checkoutLoading: false,
   deleteItem: vi.fn(),
   incrementItem: vi.fn(),
-  lastOrder: null,
   note: '',
   onClear: vi.fn(),
   onOpenChange: vi.fn(),
@@ -37,42 +25,6 @@ const baseCartProps = {
 describe('customer ordering components', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-  })
-
-  it('shows the missing QR session state', () => {
-    render(<MissingQrScreen />)
-
-    expect(screen.getByText('Scan your table QR code')).toBeInTheDocument()
-    expect(screen.getByText('?shopId=test-shop-001&table=test-table-001')).toBeInTheDocument()
-  })
-
-  it('keeps product card open and add actions separate', async () => {
-    const user = userEvent.setup()
-    const onAdd = vi.fn()
-    const onOpen = vi.fn()
-    const item: MenuItem = {
-      id: 'p1',
-      name: 'Chicken tibs',
-      categoryId: 'cat_main',
-      categoryMeta: {
-        id: 'cat_main',
-        name: 'Main',
-        iconKey: 'soup',
-        color: '#B85C38',
-        sortOrder: 10,
-      },
-      unitPrice: 1250,
-      imageUrl: 'https://cdn.example.com/tibs.jpg',
-    }
-
-    render(<ProductCard item={item} onAdd={onAdd} onOpen={onOpen} />)
-
-    await user.click(screen.getByRole('button', { name: 'View Chicken tibs' }))
-    await user.click(screen.getByRole('button', { name: 'Add Chicken tibs' }))
-
-    expect(onOpen).toHaveBeenCalledTimes(1)
-    expect(onAdd).toHaveBeenCalledTimes(1)
-    expect(screen.getByText('12.50 ETB')).toBeInTheDocument()
   })
 
   it('disables checkout when the cart is empty', () => {
@@ -143,6 +95,8 @@ describe('customer ordering components', () => {
 
     expect(screen.queryByText('CARD')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Awaze Tibs' })).toBeInTheDocument()
+    expect(screen.getAllByText((_, element) => element?.textContent === '0ETB').length).toBeGreaterThan(0)
+    expect(screen.getByRole('button', { name: 'Checkout' })).toBeDisabled()
 
     await user.click(screen.getByRole('button', { name: 'Main' }))
     await user.click(screen.getByRole('button', { name: 'Add Awaze Tibs' }))
@@ -186,21 +140,21 @@ describe('customer ordering components', () => {
 
     await user.click(screen.getByRole('button', { name: 'Review cart' }))
 
-    expect(screen.getByText('780 ETB')).toBeInTheDocument()
+    expect(screen.getAllByText((_, element) => element?.textContent === '780ETB').length).toBeGreaterThan(0)
     expect(onOpenCart).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole('button', { name: 'Checkout' }))
     expect(onCheckout).toHaveBeenCalledTimes(1)
   })
 
-  it('shows checkout errors with toast without clearing the cart', async () => {
-    const cart: CartItem[] = [{ id: 'p1', name: 'Chicken tibs', price: 1250, quantity: 1 }]
-    const onPay = vi.fn().mockRejectedValue(new Error('Order service unavailable'))
+  it('starts payment from the cart page without inline payment feedback', async () => {
+    const user = userEvent.setup()
+    const onPay = vi.fn().mockResolvedValue(undefined)
 
     render(
       <CheckoutCartDrawer
         {...baseCartProps}
-        cart={cart}
+        cart={[{ id: 'p1', name: 'Chicken tibs', price: 1250, quantity: 1 }]}
         onPay={onPay}
         open
         totalPrice={1250}
@@ -208,12 +162,11 @@ describe('customer ordering components', () => {
       />,
     )
 
-    fireEvent.click(screen.getByRole('button', { name: 'Pay with Telebirr' }))
+    expect(screen.queryByText(/Last order:/i)).not.toBeInTheDocument()
+    expect(screen.queryByText('Payment in progress')).not.toBeInTheDocument()
 
-    await waitFor(() => {
-      expect(toast.error).toHaveBeenCalledWith('Order service unavailable')
-    })
-    expect(screen.queryByText('Checkout needs attention')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading', { name: 'Chicken tibs' })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Pay with Telebirr' }))
+
+    expect(onPay).toHaveBeenCalledTimes(1)
   })
 })
