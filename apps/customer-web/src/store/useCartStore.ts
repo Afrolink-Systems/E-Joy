@@ -4,6 +4,7 @@ import { CART_STORAGE_KEY } from '../lib/customerLocalData'
 
 export type CartItem = {
   id: string
+  imageUrl?: string | null
   name: string
   price: number
   quantity: number
@@ -23,7 +24,7 @@ type CartState = {
   deleteItem: (id: string, remark?: string) => void
   setLineQuantity: (id: string, quantity: number, remark?: string) => void
   syncCatalogItems: (
-    items: Array<{ id: string; name?: string; unitPrice?: number }>,
+    items: Array<{ id: string; imageUrl?: string | null; name?: string; unitPrice?: number }>,
   ) => void
   clearCart: () => void
 }
@@ -58,6 +59,7 @@ export const useCartStore = create<CartState>()(
             const next = [...state.items]
             next[index] = {
               ...next[index],
+              imageUrl: item.imageUrl ?? next[index].imageUrl,
               name: item.name,
               price: item.price,
               quantity: next[index].quantity + qty,
@@ -69,6 +71,7 @@ export const useCartStore = create<CartState>()(
               ...state.items,
               {
                 id: item.id,
+                imageUrl: item.imageUrl,
                 name: item.name,
                 price: item.price,
                 quantity: qty,
@@ -118,11 +121,12 @@ export const useCartStore = create<CartState>()(
           const next = state.items.map((line) => {
             const item = catalog.get(line.id)
             if (!item) return line
+            const imageUrl = item.imageUrl ?? line.imageUrl
             const name = item.name ?? line.name
             const price = item.unitPrice ?? line.price
-            if (name === line.name && price === line.price) return line
+            if (imageUrl === line.imageUrl && name === line.name && price === line.price) return line
             changed = true
-            return { ...line, name, price }
+            return { ...line, imageUrl, name, price }
           })
           return changed ? { items: next } : state
         }),
@@ -136,6 +140,7 @@ export const useCartStore = create<CartState>()(
         state.items = state.items
           .map((row: CartItem & { productId?: string; unitPrice?: number }) => ({
             id: row.id ?? row.productId ?? '',
+            imageUrl: row.imageUrl ?? undefined,
             name: row.name,
             price: row.price ?? row.unitPrice ?? 0,
             quantity: Math.max(1, row.quantity),

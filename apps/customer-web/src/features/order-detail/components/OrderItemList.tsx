@@ -15,20 +15,20 @@ export function OrderItemList({ items, orderId }: OrderItemListProps) {
       {items.map((item, index) => (
         <article
           key={`${orderId}-${index}`}
-          className="grid grid-cols-[76px_minmax(0,1fr)_auto] items-center gap-4 border-b border-border py-4 last:border-b-0 max-[370px]:grid-cols-[64px_minmax(0,1fr)_auto] max-[370px]:gap-3"
+          className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-3 border-b border-border py-3 last:border-b-0 max-[370px]:grid-cols-[52px_minmax(0,1fr)_auto]"
         >
           <img
             src={resolveOrderProductImageUrl(item.product.imageUrl)}
             alt=""
-            className="size-[76px] rounded-[1rem] bg-muted object-cover shadow-[0_8px_20px_rgba(20,20,20,0.07)] max-[370px]:size-16"
+            className="size-[58px] rounded-[12px] bg-muted object-cover max-[370px]:size-[52px]"
           />
           <div className="min-w-0">
-            <h3 className="truncate text-[18px] font-black text-card-foreground max-[370px]:text-[16px]">{item.product.name}</h3>
-            <p className="mt-2 inline-flex rounded-full bg-muted px-3 py-1 text-[14px] font-bold text-muted-foreground max-[370px]:text-[12px]">
+            <h3 className="truncate text-[15px] font-bold text-card-foreground">{item.product.name}</h3>
+            <p className="mt-1.5 inline-flex rounded-full bg-muted px-2.5 py-0.5 text-[12px] font-bold text-muted-foreground">
               x{item.quantity}
             </p>
           </div>
-          <strong className="whitespace-nowrap text-right text-[17px] font-black text-card-foreground max-[370px]:text-[14px]">
+          <strong className="whitespace-nowrap text-right text-[15px] font-extrabold text-card-foreground">
             {formatOrderBirr(item.priceAtTime * item.quantity)}
           </strong>
         </article>

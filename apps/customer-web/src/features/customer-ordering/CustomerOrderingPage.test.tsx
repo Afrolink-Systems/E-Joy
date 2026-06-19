@@ -140,6 +140,17 @@ describe('CustomerOrderingPage', () => {
     expect(state.requestEndSession).not.toHaveBeenCalled()
   })
 
+  it('hides bottom tabs on the menu when the sticky cart bar is active', () => {
+    const state = buildState({ totalQuantity: 2 })
+    useCustomerOrderingAppMock.mockReturnValue(state)
+
+    render(<CustomerOrderingPage />)
+
+    expect(screen.getByText('Menu screen')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Home' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Orders' })).not.toBeInTheDocument()
+  })
+
   it('can cancel or confirm the end-session dialog', async () => {
     const user = userEvent.setup()
     const state = buildState({ endSessionConfirmOpen: true })

@@ -46,17 +46,21 @@ export function CustomerOrderingPage() {
             loading={state.loading}
             menuRows={state.menuRows}
             onAdd={(item) => {
-              state.addItem({ id: item.id, name: item.name, price: item.unitPrice })
+              state.addItem({ id: item.id, imageUrl: item.imageUrl, name: item.name, price: item.unitPrice })
             }}
+            onRemove={(item) => state.removeItem(item.id)}
+            onCheckout={state.payWithTelebirr}
             onOpenAccount={() => state.setAccountDialogOpen(true)}
             onOpenCart={() => state.setCartOpen(true)}
             onOpenDetail={state.setDetailItem}
+            onOpenHome={state.requestEndSession}
             onOpenInfo={() => state.setShopInfoOpen(true)}
             onRefetch={() => void state.refetch()}
             search={state.search}
             selectedCategory={state.selectedCategory}
             setSearch={state.setSearch}
             setSelectedCategory={state.setSelectedCategory}
+            showFloatingCartBar={!state.cartOpen && !state.detailItem}
             shopName={state.shopName}
             tableRef={state.tableRef}
             totalPrice={state.totalPrice}
@@ -75,7 +79,7 @@ export function CustomerOrderingPage() {
           />
         ) : null}
 
-        {state.activeTab === 'home' ? null : (
+        {state.activeTab === 'home' || (state.activeTab === 'menu' && state.totalQuantity > 0) ? null : (
           <BottomTabs
             activeTab={state.activeTab}
             onSelect={(tab) => {
@@ -142,22 +146,29 @@ export function CustomerOrderingPage() {
       />
 
       <ItemDetailDrawer
+        cartQuantity={state.detailItem ? itemQuantityInCart(state.cart, state.detailItem.id) : 0}
+        cartTotalPrice={state.totalPrice}
+        cartTotalQuantity={state.totalQuantity}
         item={state.detailItem}
+        onCheckout={state.payWithTelebirr}
+        onOpenCart={() => state.setCartOpen(true)}
+        onRemove={() => {
+          if (!state.detailItem) return
+          state.removeItem(state.detailItem.id)
+        }}
         themePreset={state.customerThemePreset}
         themeVars={state.customerThemeVars}
         onOpenChange={(open) => {
           if (!open) state.setDetailItem(null)
         }}
-        onAdd={(quantity, remark) => {
+        onAdd={() => {
           if (!state.detailItem) return
           state.addItem({
             id: state.detailItem.id,
+            imageUrl: state.detailItem.imageUrl,
             name: state.detailItem.name,
             price: state.detailItem.unitPrice,
-            quantity,
-            remark,
           })
-          state.setDetailItem(null)
         }}
       />
 
@@ -189,4 +200,13 @@ export function CustomerOrderingPage() {
       />
     </main>
   )
+}
+
+function itemQuantityInCart(
+  cart: Array<{ id: string; quantity: number }>,
+  itemId: string,
+): number {
+  return cart
+    .filter((line) => line.id === itemId)
+    .reduce((sum, line) => sum + line.quantity, 0)
 }

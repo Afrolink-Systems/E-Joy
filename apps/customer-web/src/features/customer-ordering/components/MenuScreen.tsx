@@ -1,26 +1,6 @@
-import {
-  CakeSlice,
-  Coffee,
-  CupSoda,
-  Grid2X2,
-  IceCreamBowl,
-  Leaf,
-  Plus,
-  ShoppingBasket,
-  ShoppingCart,
-  Soup,
-  UserRound,
-} from 'lucide-react'
-import { useMemo, useState } from 'react'
-import {
-  AnimatedCollectionView,
-  CollectionViewTabs,
-  type AnimatedCollectionItem,
-  type CollectionViewMode,
-} from '../../../components/animated-collection'
-import DiscoverButton from '../../../components/discover-button'
+import { Home, Info, Search, ShoppingBasket, UserRound, X } from 'lucide-react'
+import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert'
-import { Badge } from '../../../components/ui/badge'
 import { Button } from '../../../components/ui/button'
 import {
   Empty,
@@ -29,14 +9,11 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '../../../components/ui/empty'
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from '../../../components/ui/resizable'
 import type { CartItem } from '../../../store/useCartStore'
 import type { MenuCategory, MenuItem } from '../customer-ordering.types'
 import { formatBirr, resolveProductImageUrl } from '../customer-ordering.utils'
+import { CartQuantityControl } from './CartQuantityControl'
+import { FloatingCartBar } from './FloatingCartBar'
 import { MenuSkeleton } from './MenuSkeleton'
 
 type MenuScreenProps = {
@@ -46,15 +23,19 @@ type MenuScreenProps = {
   loading: boolean
   menuRows: MenuItem[]
   onAdd: (item: MenuItem) => void
+  onRemove: (item: MenuItem) => void
+  onCheckout: () => Promise<void>
   onOpenAccount: () => void
   onOpenCart: () => void
   onOpenDetail: (item: MenuItem) => void
+  onOpenHome: () => void
   onOpenInfo: () => void
   onRefetch: () => void
   search: string
   selectedCategory: string
   setSearch: (value: string) => void
   setSelectedCategory: (value: string) => void
+  showFloatingCartBar: boolean
   shopName: string
   tableRef: string
   totalPrice: number
@@ -63,98 +44,77 @@ type MenuScreenProps = {
 }
 
 export function MenuScreen(props: MenuScreenProps) {
-  const [view, setView] = useState<CollectionViewMode>('list')
+  const hasCartItems = props.totalQuantity > 0
 
-  const collectionItems = useMemo<AnimatedCollectionItem[]>(
-    () =>
-      props.visibleRows.map((item) => ({
-        id: item.id,
-        title: item.name,
-        image: resolveProductImageUrl(item.imageUrl),
-        onOpen: () => props.onOpenDetail(item),
-        meta: (
-          <div className="flex min-w-0 flex-col">
-            <strong className="text-[17px] font-black text-card-foreground max-[370px]:text-[16px]">{formatBirr(item.unitPrice)}</strong>
-          </div>
-        ),
-        action: (
-          <Button
-            type="button"
-            size="icon"
-            className="absolute bottom-2.5 right-2.5 size-9 rounded-full bg-primary text-primary-foreground shadow-[0_10px_22px_rgba(0,0,0,0.18)] hover:bg-primary/90 max-[370px]:size-8"
-            onClick={() => props.onAdd(item)}
-            aria-label={`Add ${item.name}`}
-          >
-            <Plus className="size-5 max-[370px]:size-4" />
-          </Button>
-        ),
-      })),
-    [props],
-  )
+  function checkout() {
+    props.onCheckout().catch((err: unknown) => {
+      const message = err instanceof Error ? err.message : 'Checkout failed'
+      toast.error(message)
+    })
+  }
 
   return (
-    <section className="relative flex h-svh min-h-svh flex-col overflow-hidden bg-background">
-      <header className="shrink-0 px-4 pt-[calc(env(safe-area-inset-top)+14px)] max-[370px]:px-3 max-[370px]:pt-[calc(env(safe-area-inset-top)+10px)]">
-        <div className="grid grid-cols-[48px_minmax(0,1fr)_48px] items-center gap-2 max-[370px]:grid-cols-[44px_minmax(0,1fr)_44px]">
+    <section className="relative flex h-svh min-h-svh flex-col overflow-hidden bg-background text-foreground">
+      <header className="shrink-0 px-4 pt-[calc(env(safe-area-inset-top)+10px)] max-[370px]:px-3">
+        <div className="grid grid-cols-[40px_minmax(0,1fr)_40px] items-center gap-2">
           <button
             type="button"
-            className="grid size-11 place-items-center overflow-hidden rounded-full bg-secondary text-secondary-foreground max-[370px]:size-10"
+            className="grid size-10 place-items-center rounded-full bg-card text-card-foreground ring-1 ring-border transition active:scale-95"
+            onClick={props.onOpenHome}
+            aria-label="Go home"
+          >
+            <Home className="size-5" />
+          </button>
+
+          <div className="min-w-0 text-center">
+            <button
+              type="button"
+              className="mx-auto flex max-w-[260px] items-center justify-center gap-1 truncate text-[13px] font-semibold text-foreground transition hover:text-foreground max-[370px]:max-w-[220px] max-[370px]:text-[12px]"
+              onClick={props.onOpenInfo}
+            >
+              <span className="truncate">{props.shopName}</span>
+              <span className="text-muted-foreground" aria-hidden="true">
+                &middot;
+              </span>
+              <span className="shrink-0 text-primary">Table {props.tableRef}</span>
+              <Info className="size-3.5 shrink-0 text-muted-foreground" />
+            </button>
+          </div>
+
+          <button
+            type="button"
+            className="grid size-10 place-items-center rounded-full bg-card text-card-foreground ring-1 ring-border transition active:scale-95"
             onClick={props.onOpenAccount}
             aria-label="Open account"
           >
-            <UserRound className="size-6 max-[370px]:size-5" />
+            <UserRound className="size-5" />
           </button>
-          <div className="min-w-0 text-center">
-            <h1 className="truncate text-[22px] font-black leading-none text-foreground max-[370px]:text-[20px]">Menu</h1>
+        </div>
+
+        <label className="mt-4 flex h-11 min-w-0 items-center gap-2 rounded-full border border-border bg-card px-3.5 text-card-foreground">
+          <Search className="size-5 shrink-0 text-muted-foreground" />
+          <input
+            type="search"
+            value={props.search}
+            onChange={(event) => props.setSearch(event.target.value)}
+            placeholder="Search menu"
+            className="min-w-0 flex-1 border-0 bg-transparent text-[15px] font-medium text-card-foreground outline-none placeholder:text-muted-foreground"
+          />
+          {props.search ? (
             <button
               type="button"
-              className="mx-auto mt-1 block max-w-[220px] truncate text-xs font-semibold text-muted-foreground transition hover:text-foreground max-[370px]:max-w-[180px] max-[370px]:text-[11px]"
-              onClick={props.onOpenInfo}
+              onClick={() => props.setSearch('')}
+              className="grid size-7 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground transition active:scale-95"
+              aria-label="Clear search"
             >
-              {props.shopName} - Table {props.tableRef}
+              <X className="size-4" />
             </button>
-          </div>
-          <button
-            type="button"
-            onClick={props.onOpenCart}
-            className="relative grid size-11 place-items-center rounded-[1rem] bg-card text-card-foreground shadow-[0_10px_22px_rgba(0,0,0,0.08)] max-[370px]:size-10"
-            aria-label="Open cart"
-          >
-            <ShoppingCart className="size-6 max-[370px]:size-5" />
-            {props.totalQuantity > 0 ? (
-              <Badge className="absolute -right-1 -top-1 min-w-5 justify-center rounded-full px-1 text-[10px] shadow-sm ring-2 ring-background">
-                {props.totalQuantity}
-              </Badge>
-            ) : null}
-          </button>
-        </div>
-
-        <div className="mt-5 max-[370px]:mt-4">
-          <DiscoverButton
-            search={props.search}
-            onSearchChange={props.setSearch}
-            placeholder="Search menu"
-          />
-        </div>
-
-        <CollectionViewTabs className="mt-4 max-[370px]:mt-3" value={view} onChange={setView} />
-
-        {view === 'card' ? (
-          <div className="no-scrollbar -mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 max-[370px]:-mx-3 max-[370px]:px-3">
-            {props.categories.map((category) => (
-              <CategoryPill
-                key={category.name}
-                active={props.selectedCategory === category.name}
-                category={category}
-                onClick={() => props.setSelectedCategory(category.name)}
-              />
-            ))}
-          </div>
-        ) : null}
+          ) : null}
+        </label>
       </header>
 
       {props.error ? (
-        <Alert variant="destructive" className="mx-4 mt-3 w-auto rounded-3xl max-[370px]:mx-3">
+        <Alert variant="destructive" className="mx-4 mt-3 w-auto rounded-2xl max-[370px]:mx-3">
           <AlertTitle>Menu could not load</AlertTitle>
           <AlertDescription>{props.error}</AlertDescription>
           <Button type="button" variant="ghost" size="sm" onClick={props.onRefetch}>
@@ -163,87 +123,65 @@ export function MenuScreen(props: MenuScreenProps) {
         </Alert>
       ) : null}
 
-      {view !== 'card' ? (
-        <ResizablePanelGroup
-          className="mt-3 min-h-0 flex-1 overflow-hidden px-4 max-[370px]:px-3"
-          id="customer-menu-category-rail"
-          orientation="horizontal"
-        >
-          <ResizablePanel
-            className="min-w-[50px] overflow-hidden"
-            defaultSize="56px"
-            maxSize="88px"
-            minSize="50px"
-          >
-            <aside className="no-scrollbar h-full overflow-y-auto pb-[132px]">
-              <div className="grid">
-                {props.categories.map((category) => (
-                  <CategoryTile
-                    key={category.name}
-                    active={props.selectedCategory === category.name}
-                    category={category}
-                    onClick={() => props.setSelectedCategory(category.name)}
-                  />
-                ))}
-              </div>
-            </aside>
-          </ResizablePanel>
-
-          <ResizableHandle
-            className="mx-1 w-px bg-border after:w-3 hover:bg-border/80 focus-visible:bg-ring"
-            withHandle
+      <div className="no-scrollbar mt-4 flex shrink-0 gap-2 overflow-x-auto px-4 pb-1 max-[370px]:px-3">
+        {props.categories.map((category, index) => (
+          <CategoryButton
+            key={category.name}
+            active={
+              props.selectedCategory === category.name ||
+              (!props.selectedCategory && index === 0)
+            }
+            category={category}
+            onClick={() => props.setSelectedCategory(category.name)}
           />
+        ))}
+      </div>
 
-          <ResizablePanel
-            className="min-w-0 overflow-hidden"
-            defaultSize="100%"
-            minSize="220px"
-          >
-            <div className="no-scrollbar h-full min-w-0 overflow-y-auto pb-[132px] pl-2" data-mode={view}>
-              {props.loading ? (
-                <MenuSkeleton />
-              ) : props.visibleRows.length === 0 ? (
-                <Empty className="min-h-[320px] rounded-[1.6rem] border-0 bg-card/70">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <ShoppingBasket />
-                    </EmptyMedia>
-                    <EmptyTitle>No menu items found</EmptyTitle>
-                    <EmptyDescription>Try another search or category.</EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
-              ) : (
-                <AnimatedCollectionView items={collectionItems} view={view} />
-              )}
+      <div className="mt-3 min-h-0 flex-1 overflow-hidden px-4 max-[370px]:px-3">
+        <div className="no-scrollbar h-full min-w-0 overflow-y-auto pb-[132px]">
+          {props.loading ? (
+            <MenuSkeleton />
+          ) : props.visibleRows.length === 0 ? (
+            <Empty className="min-h-[320px] rounded-2xl border-0 bg-card/70">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ShoppingBasket />
+                </EmptyMedia>
+                <EmptyTitle>No menu items found</EmptyTitle>
+                <EmptyDescription>Try another search or category.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {props.visibleRows.map((item) => (
+                <ProductRow
+                  key={item.id}
+                  item={item}
+                  onAdd={() => props.onAdd(item)}
+                  onRemove={() => props.onRemove(item)}
+                  onOpen={() => props.onOpenDetail(item)}
+                  quantity={cartQuantityForItem(props.cart, item.id)}
+                />
+              ))}
             </div>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      ) : (
-        <div className="mt-3 min-h-0 flex-1 overflow-hidden px-4 max-[370px]:px-3">
-          <div className="no-scrollbar h-full min-w-0 overflow-y-auto pb-[132px]">
-            {props.loading ? (
-              <MenuSkeleton />
-            ) : props.visibleRows.length === 0 ? (
-              <Empty className="min-h-[320px] rounded-[1.6rem] border-0 bg-card/70">
-                <EmptyHeader>
-                  <EmptyMedia variant="icon">
-                    <ShoppingBasket />
-                  </EmptyMedia>
-                  <EmptyTitle>No menu items found</EmptyTitle>
-                  <EmptyDescription>Try another search or category.</EmptyDescription>
-                </EmptyHeader>
-              </Empty>
-            ) : (
-              <AnimatedCollectionView items={collectionItems} view={view} />
-            )}
-          </div>
+          )}
         </div>
-      )}
+      </div>
+
+      {hasCartItems && props.showFloatingCartBar ? (
+        <FloatingCartBar
+          actionLabel="Checkout"
+          count={props.totalQuantity}
+          onAction={checkout}
+          onCart={props.onOpenCart}
+          totalPrice={props.totalPrice}
+        />
+      ) : null}
     </section>
   )
 }
 
-function CategoryPill({
+function CategoryButton({
   active,
   category,
   onClick,
@@ -256,55 +194,71 @@ function CategoryPill({
     <button
       type="button"
       onClick={onClick}
-      className={`relative h-9 shrink-0 rounded-full border px-4 text-sm font-semibold transition max-[370px]:h-8 max-[370px]:px-3 max-[370px]:text-xs ${
-        active ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-card-foreground shadow-sm'
+      className={`h-9 shrink-0 rounded-full border px-4 text-[12px] font-semibold transition max-[370px]:h-8 max-[370px]:px-3 max-[370px]:text-[11px] ${
+        active ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-card text-muted-foreground hover:text-foreground'
       }`}
+      title={category.name}
     >
       {category.name}
     </button>
   )
 }
 
-function CategoryTile({
-  active,
-  category,
-  onClick,
+function ProductRow({
+  item,
+  onAdd,
+  onRemove,
+  onOpen,
+  quantity,
 }: {
-  active: boolean
-  category: MenuCategory
-  onClick: () => void
+  item: MenuItem
+  onAdd: () => void
+  onRemove: () => void
+  onOpen: () => void
+  quantity: number
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`relative flex min-h-[58px] w-full items-center justify-center rounded-none text-center transition max-[370px]:min-h-[54px] ${
-        active ? 'bg-primary/10 text-primary' : 'text-foreground hover:bg-muted/60'
-      }`}
-      aria-label={category.name}
-      title={category.name}
-    >
-      {renderCategoryIcon(category, active)}
-    </button>
+    <article className="grid min-h-[102px] grid-cols-[86px_minmax(0,1fr)_92px] items-center gap-3 border-b border-border/70 pb-3 last:border-b-0 max-[370px]:grid-cols-[76px_minmax(0,1fr)_84px] max-[370px]:gap-2.5">
+      <button
+        type="button"
+        onClick={onOpen}
+        className="overflow-hidden rounded-[14px] bg-muted transition active:scale-[0.98]"
+        aria-label={`View ${item.name}`}
+      >
+        <img
+          src={resolveProductImageUrl(item.imageUrl)}
+          alt=""
+          className="aspect-square w-full object-cover"
+          loading="lazy"
+        />
+      </button>
+      <button
+        type="button"
+        onClick={onOpen}
+        className="min-w-0 text-left transition active:scale-[0.99]"
+        aria-label={`View ${item.name}`}
+      >
+        <h2 className="line-clamp-2 text-[16px] font-bold leading-snug text-foreground max-[370px]:text-[15px]">{item.name}</h2>
+        <strong className="mt-2 block text-[18px] font-extrabold leading-none text-foreground max-[370px]:text-[17px]">
+          {formatBirr(item.unitPrice)}
+        </strong>
+      </button>
+      <div className="justify-self-end">
+        <CartQuantityControl
+          addLabel={`Add ${item.name}`}
+          incrementLabel={`Add ${item.name}`}
+          onAdd={onAdd}
+          onRemove={onRemove}
+          quantity={quantity}
+          removeLabel={`Remove ${item.name}`}
+        />
+      </div>
+    </article>
   )
 }
 
-function renderCategoryIcon(category: MenuCategory, active: boolean) {
-  const className = 'size-[21px] max-[370px]:size-5'
-  const style = { color: active ? 'var(--primary)' : 'var(--foreground)' }
-  const key = category.iconKey?.toLowerCase()
-  if (key === 'soup') return <Soup className={className} style={style} />
-  if (key === 'coffee') return <Coffee className={className} style={style} />
-  if (key === 'drink') return <CupSoda className={className} style={style} />
-  if (key === 'cake') return <CakeSlice className={className} style={style} />
-  if (key === 'snack') return <IceCreamBowl className={className} style={style} />
-  if (key === 'leaf') return <Leaf className={className} style={style} />
-  const value = category.name.toLowerCase()
-  if (value.includes('meal') || value.includes('main')) return <Soup className={className} style={style} />
-  if (value.includes('coffee')) return <Coffee className={className} style={style} />
-  if (value.includes('drink') || value.includes('juice')) return <CupSoda className={className} style={style} />
-  if (value.includes('dessert') || value.includes('cake')) return <CakeSlice className={className} style={style} />
-  if (value.includes('snack')) return <IceCreamBowl className={className} style={style} />
-  if (value.includes('salad') || value.includes('vegetarian')) return <Leaf className={className} style={style} />
-  return <Grid2X2 className={className} style={style} />
+function cartQuantityForItem(cart: CartItem[], itemId: string): number {
+  return cart
+    .filter((line) => line.id === itemId)
+    .reduce((sum, line) => sum + line.quantity, 0)
 }

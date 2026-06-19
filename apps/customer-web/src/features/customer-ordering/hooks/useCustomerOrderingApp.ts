@@ -54,7 +54,7 @@ export function useCustomerOrderingApp() {
     readStoredActiveTab(session.hasTableSession),
   )
   const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('All')
+  const [selectedCategory, setSelectedCategory] = useState('')
   const [detailItem, setDetailItem] = useState<MenuItem | null>(null)
   const [cartOpen, setCartOpen] = useState(false)
   const [shopInfoOpen, setShopInfoOpen] = useState(false)
@@ -126,7 +126,7 @@ export function useCustomerOrderingApp() {
     setOrderNote('')
     setLastOrder(null)
     setSearch('')
-    setSelectedCategory('All')
+    setSelectedCategory('')
   }
 
   function requestEndSession() {

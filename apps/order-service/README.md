@@ -57,9 +57,13 @@ Seeded local data includes:
 - Shop ID: `test-shop-001`
 - Manager phone: `0911000000`
 - Manager password: `Admin@123456`
-- Platform owner identifier: `owner@ejoy.local`
-- Platform owner password: `Owner@123456`
-- Demo products and dining tables
+- Compact image-backed menu and dining tables
+
+Platform owner / super admin creation is handled separately by:
+
+```bash
+pnpm --filter order-service run db:bootstrap-owner
+```
 
 To rerun seed data only:
 

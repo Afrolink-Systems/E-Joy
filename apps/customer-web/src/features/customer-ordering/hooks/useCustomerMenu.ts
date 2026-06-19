@@ -61,26 +61,31 @@ export function useCustomerMenu({
       const order = (a.sortOrder ?? 999) - (b.sortOrder ?? 999)
       return order || a.name.localeCompare(b.name)
     })
-    return [{ name: 'All', iconKey: 'grid', sortOrder: -1 }, ...values]
+    return values
   }, [menuRows])
 
   const visibleRows = useMemo(() => {
     const query = search.trim().toLowerCase()
+    const activeCategory = selectedCategory || categories[0]?.name || ''
     return menuRows.filter((row) => {
       const inCategory =
-        selectedCategory === 'All' || row.categoryMeta.name === selectedCategory
+        !activeCategory || row.categoryMeta.name === activeCategory
       const inSearch =
         !query ||
         row.name.toLowerCase().includes(query) ||
         row.categoryMeta.name.toLowerCase().includes(query)
       return inCategory && inSearch
     })
-  }, [menuRows, search, selectedCategory])
+  }, [categories, menuRows, search, selectedCategory])
 
   useEffect(() => {
-    if (selectedCategory === 'All') return
-    if (!categories.some((category) => category.name === selectedCategory)) {
-      setSelectedCategory('All')
+    const firstCategory = categories[0]?.name
+    if (!firstCategory) return
+    if (
+      !selectedCategory ||
+      !categories.some((category) => category.name === selectedCategory)
+    ) {
+      setSelectedCategory(firstCategory)
     }
   }, [categories, selectedCategory, setSelectedCategory])
 

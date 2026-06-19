@@ -24,7 +24,6 @@
     "db:seed": "tsx prisma/seed.ts",
     "db:bootstrap-owner": "tsx scripts/bootstrap-platform-owner.ts",
     "db:repair-demo-shop": "tsx scripts/repair-orders-demo-shop.ts",
-    "db:seed-menu": "tsx scripts/seed-menu.ts",
     "dev:jwt": "tsx scripts/generate-jwt.ts",
     "job:staff-performance-daily": "tsx scripts/staff-performance-daily-job.ts --simulate",
     "bench:export-report": "tsx scripts/export-report-benchmark.ts",
