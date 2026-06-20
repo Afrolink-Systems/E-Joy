@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { TableRow } from '../../../graphql/tables'
 import { QR_SIZE, buildCustomerTableLink } from '../tables.utils'
 
+const QR_QUIET_ZONE_MODULES = 4
+
 type TableQRCodeModalProps = {
   open: boolean
   table: TableRow | null
@@ -138,7 +140,11 @@ export function TableQRCodeModal({
           <>
             <div className="mt-6 flex justify-center rounded-xl border border-slate-100 bg-white p-4">
               <div ref={wrapRef} className="inline-block">
-                <QRCodeSVG value={link} size={QR_SIZE} />
+                <QRCodeSVG
+                  value={link}
+                  size={QR_SIZE}
+                  marginSize={QR_QUIET_ZONE_MODULES}
+                />
               </div>
             </div>
             <p className="mt-3 break-all text-center text-xs text-slate-500">
@@ -170,4 +176,3 @@ export function TableQRCodeModal({
     </div>
   )
 }
-

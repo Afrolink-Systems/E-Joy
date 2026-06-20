@@ -10,6 +10,7 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../../../components/ui/button'
+import { parseQrSession, type QrSession } from '../customerQrSession'
 
 type HomeScreenProps = {
   hasTableSession: boolean
@@ -17,11 +18,6 @@ type HomeScreenProps = {
   onStartNewSession: (session: QrSession) => void
   shopName: string
   tableRef: string
-}
-
-type QrSession = {
-  shopId: string
-  table: string
 }
 
 const HOME_BACKGROUND = '/images/ejoy-addis-home-bg.png'
@@ -207,34 +203,4 @@ function QrScannerPanel({
       </section>
     </div>
   )
-}
-
-function parseQrSession(rawValue: string): QrSession | null {
-  const trimmed = rawValue.trim()
-  if (!trimmed) return null
-
-  try {
-    const parsed = JSON.parse(trimmed) as { shopId?: unknown; table?: unknown; tableNumber?: unknown }
-    const shopId = typeof parsed.shopId === 'string' ? parsed.shopId.trim() : ''
-    const table =
-      typeof parsed.table === 'string'
-        ? parsed.table.trim()
-        : typeof parsed.tableNumber === 'string'
-          ? parsed.tableNumber.trim()
-          : ''
-    if (shopId && table) return { shopId, table }
-  } catch {
-    /* QR is commonly a URL, not JSON. */
-  }
-
-  try {
-    const url = new URL(trimmed, window.location.origin)
-    const shopId = url.searchParams.get('shopId')?.trim() ?? ''
-    const table = url.searchParams.get('table')?.trim() ?? ''
-    if (shopId && table) return { shopId, table }
-  } catch {
-    /* invalid URL */
-  }
-
-  return null
 }
