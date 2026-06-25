@@ -46,7 +46,8 @@ export function HomeScreen({
     const rawValue = codes[0]?.rawValue
     if (!rawValue) return
 
-    const session = parseQrSession(rawValue)
+    const session = 
+          (rawValue)
     if (!session) {
       setScanError('That QR code does not look like an E-Joy table code.')
       return
