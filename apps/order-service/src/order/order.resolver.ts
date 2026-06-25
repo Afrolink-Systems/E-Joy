@@ -26,6 +26,7 @@ import {
   ConfirmPaymentCallbackInput,
   CreateAddressInput,
   CreateOrderInput,
+  CreateProductReviewInput,
   DeliveryOrderFilterInput,
   DeliveryConfigInput,
   InitiatePaymentInput,
@@ -43,6 +44,7 @@ import {
   OrderModel,
   OrderPayload,
   PaymentPayload,
+  ProductReviewModel,
   ShopDeliveryConfigModel,
   ShopMenuProductModel,
   UserAddressModel,
@@ -88,6 +90,14 @@ export class OrderResolver {
   @Query(() => [ShopMenuProductModel])
   shopMenu(@Args('shopId') shopId: string): Promise<ShopMenuProductModel[]> {
     return this.orderService.shopMenuProducts(shopId);
+  }
+
+  @Query(() => [ProductReviewModel])
+  productReviews(
+    @Args('shopId', { type: () => ID }) shopId: string,
+    @Args('productId', { type: () => ID }) productId: string,
+  ): Promise<ProductReviewModel[]> {
+    return this.orderService.productReviews(shopId, productId);
   }
 
   /** MVP：顾客端历史订单列表（不按用户过滤） */
@@ -167,6 +177,23 @@ export class OrderResolver {
       input,
       customerUserId ?? `guest-${randomUUID()}`,
     );
+  }
+
+  @UseGuards(OptionalJwtAuthGuard)
+  @Mutation(() => ProductReviewModel)
+  createProductReview(
+    @Args('input') input: CreateProductReviewInput,
+    @CurrentUserId() userId?: string,
+    @Context()
+    ctx?: {
+      req?: { user?: { subjectType?: string; id?: string } };
+    },
+  ): Promise<ProductReviewModel> {
+    const customerUserId =
+      ctx?.req?.user?.subjectType === 'CUSTOMER'
+        ? (userId ?? ctx.req.user.id)
+        : undefined;
+    return this.orderService.createProductReview(input, customerUserId);
   }
 
   @Mutation(() => PaymentPayload)

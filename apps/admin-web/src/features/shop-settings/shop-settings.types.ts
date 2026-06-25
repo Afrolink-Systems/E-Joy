@@ -23,8 +23,9 @@ export type ShopSettingsFormState = {
   description: string
   contactPhone: string
   logoUrl: string
+  latitude: string
+  longitude: string
   isOpen: boolean
   customerThemePreset: ThemePreset
   customerThemeOverrides: Record<ThemeFieldKey, string>
 }
-

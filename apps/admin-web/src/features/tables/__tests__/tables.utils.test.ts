@@ -54,10 +54,12 @@ function orderRow(
     totalAmount: 100,
     status,
     orderState: status,
+    paymentState: 'NOT_REQUIRED',
+    paymentMethod: 'CASH',
+    deliveryType: 'DINE_IN',
     createdAt,
     shopName: 'Shop',
     tableName,
     items: [],
   }
 }
-

@@ -10,6 +10,13 @@ import { useAdminSession } from '../../../lib/adminSession'
 import { mapShopToForm, serializeOverrides } from '../shop-settings.utils'
 import { useShopSettingsForm } from './useShopSettingsForm'
 
+function parseOptionalCoordinate(value: string): number | null {
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  const parsed = Number(trimmed)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
 export function useShopSettings() {
   const { shopId } = useAdminSession()
   const formState = useShopSettingsForm()
@@ -57,6 +64,8 @@ export function useShopSettings() {
             description: form.description.trim(),
             contactPhone: form.contactPhone.trim(),
             logoUrl: form.logoUrl.trim(),
+            latitude: parseOptionalCoordinate(form.latitude),
+            longitude: parseOptionalCoordinate(form.longitude),
             isOpen: form.isOpen,
             customerThemePreset: form.customerThemePreset,
             customerThemeOverrides: serializeOverrides(form.customerThemeOverrides),

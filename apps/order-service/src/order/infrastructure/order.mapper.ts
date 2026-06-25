@@ -5,6 +5,7 @@ import {
   MerchantOrderStatus,
   OrderModel,
   OrderState,
+  PaymentMethod,
   PaymentState,
 } from '../order.types';
 
@@ -44,6 +45,10 @@ export function toMerchantDispatchOrder(o: {
   totalAmount: number;
   status: PrismaOrderStatus;
   state: string;
+  paymentState: string;
+  paymentMethod: string;
+  deliveryType: string;
+  note: string | null;
   createdAt: Date;
   acceptedAt: Date | null;
   completedAt: Date | null;
@@ -52,6 +57,7 @@ export function toMerchantDispatchOrder(o: {
   items: Array<{
     quantity: number;
     productNameSnapshot: string;
+    remark: string | null;
     product: { name: string; imageUrl: string | null } | null;
   }>;
 }): MerchantDispatchOrderModel {
@@ -61,6 +67,10 @@ export function toMerchantDispatchOrder(o: {
     totalAmount: o.totalAmount,
     status: o.status as MerchantOrderStatus,
     orderState: o.state as OrderState,
+    paymentState: o.paymentState as PaymentState,
+    paymentMethod: o.paymentMethod as PaymentMethod,
+    deliveryType: o.deliveryType as DeliveryType,
+    note: o.note,
     createdAt: o.createdAt.toISOString(),
     shopName: o.shop.name,
     tableName: o.table?.name ?? null,
@@ -70,6 +80,7 @@ export function toMerchantDispatchOrder(o: {
       productName: item.product?.name ?? item.productNameSnapshot,
       quantity: item.quantity,
       imageUrl: item.product?.imageUrl ?? null,
+      remark: item.remark ?? null,
     })),
   };
 }

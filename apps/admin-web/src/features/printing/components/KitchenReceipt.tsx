@@ -8,7 +8,7 @@ export type KitchenReceiptProps = {
 
 export const KitchenReceipt = React.forwardRef<HTMLDivElement, KitchenReceiptProps>(
   function KitchenReceipt({ order }, ref) {
-    const tableDisplay = order.tableName?.trim() || 'â€”'
+    const tableDisplay = order.tableName?.trim() || '-'
     const when = new Date(order.createdAt).toLocaleString('en-GB', {
       dateStyle: 'medium',
       timeStyle: 'short',
@@ -42,8 +42,15 @@ export const KitchenReceipt = React.forwardRef<HTMLDivElement, KitchenReceiptPro
         <ul className="m-0 list-none p-0">
           {order.items.map((line, index) => (
             <li key={`${order.id}-r-${index}`} className="flex items-baseline justify-between gap-2.5 border-b border-black py-1.5 text-xs">
-              <span className="min-w-0 flex-1 break-words">{line.productName}</span>
-              <span className="min-w-[2.5em] shrink-0 text-right font-bold">Ã—{line.quantity}</span>
+              <span className="min-w-0 flex-1 break-words">
+                {line.productName}
+                {line.remark?.trim() ? (
+                  <span className="mt-1 block text-[10px] font-semibold">
+                    Note: {line.remark}
+                  </span>
+                ) : null}
+              </span>
+              <span className="min-w-[2.5em] shrink-0 text-right font-bold">x{line.quantity}</span>
             </li>
           ))}
         </ul>

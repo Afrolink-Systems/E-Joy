@@ -125,6 +125,43 @@ export class CreateOrderInput {
 }
 
 @InputType()
+export class CreateProductReviewInput {
+  @Allow()
+  @Field(() => ID)
+  @IsString()
+  @MaxLength(128)
+  shopId!: string;
+
+  @Allow()
+  @Field(() => ID)
+  @IsString()
+  @MaxLength(128)
+  productId!: string;
+
+  @Allow()
+  @Field()
+  @IsString()
+  @MinLength(1)
+  @MaxLength(500)
+  comment!: string;
+
+  @Allow()
+  @Field(() => Int, { defaultValue: 5 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  rating?: number;
+
+  @Allow()
+  @Field({ nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  author?: string;
+}
+
+@InputType()
 export class InitiatePaymentInput {
   @Allow()
   @Field(() => ID)

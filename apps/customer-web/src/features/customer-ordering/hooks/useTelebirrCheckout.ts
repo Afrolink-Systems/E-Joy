@@ -1,4 +1,8 @@
 import { useMutation } from '@apollo/client/react'
+import {
+  CONFIRM_MOCK_TELEBIRR_PAYMENT,
+  type ConfirmMockTelebirrPaymentData,
+} from '../../../graphql/confirmMockTelebirrPayment'
 import { CREATE_ORDER_MUTATION } from '../../../graphql/createOrder'
 import { useState } from 'react'
 import type { CartItem } from '../../../store/useCartStore'
@@ -37,6 +41,9 @@ export function useTelebirrCheckout({
   const [checkoutSnapshot, setCheckoutSnapshot] = useState<CartItem[]>([])
   const [createOrder, { loading: checkoutLoading }] =
     useMutation<CreateOrderData>(CREATE_ORDER_MUTATION)
+  const [confirmMockPayment] = useMutation<ConfirmMockTelebirrPaymentData>(
+    CONFIRM_MOCK_TELEBIRR_PAYMENT,
+  )
 
   async function payWithTelebirr() {
     if (!cart.length || !hasTableSession) return
@@ -76,6 +83,12 @@ export function useTelebirrCheckout({
       await onCheckoutCreated(payload.order)
       setCheckoutPhase('mock_payment')
       await waitForMockPayment()
+      const confirmed = await confirmMockPayment({
+        variables: { orderId: payload.order.id },
+      })
+      if (!confirmed.data?.confirmMockTelebirrPayment) {
+        throw new Error('Payment confirmation failed')
+      }
       await onMockPaymentSuccess(payload.order)
       setCheckoutPhase('success')
     } catch (error) {

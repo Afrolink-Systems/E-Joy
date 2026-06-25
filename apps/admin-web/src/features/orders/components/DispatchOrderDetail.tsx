@@ -58,7 +58,19 @@ export function DispatchOrderDetail({
                   {formatBirr(selected.totalAmount)}
                 </span>
               </div>
+              <div>
+                <span className="text-slate-500">Payment </span>
+                <span className="font-semibold text-slate-900">
+                  {selected.paymentMethod} / {selected.paymentState}
+                </span>
+              </div>
             </div>
+            {selected.note?.trim() ? (
+              <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                <span className="font-semibold">Order note: </span>
+                {selected.note}
+              </div>
+            ) : null}
           </div>
           <div className="px-4 py-4">
             <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -84,6 +96,11 @@ export function DispatchOrderDetail({
                     >
                       × {line.quantity}
                     </div>
+                    {line.remark?.trim() ? (
+                      <div className="mt-1 text-xs text-amber-700">
+                        Note: {line.remark}
+                      </div>
+                    ) : null}
                   </div>
                 </li>
               ))}
@@ -91,7 +108,8 @@ export function DispatchOrderDetail({
           </div>
           <div className="mt-auto border-t border-slate-100 px-4 py-4">
             <div className="flex flex-wrap gap-2">
-              {selected.status === 'PENDING' ? (
+              {selected.status === 'PENDING' &&
+              selected.paymentState !== 'PENDING' ? (
                 <button
                   type="button"
                   disabled={mutating}
@@ -123,6 +141,12 @@ export function DispatchOrderDetail({
                   Mark as completed
                 </button>
               ) : null}
+              {selected.status === 'PENDING' &&
+              selected.paymentState === 'PENDING' ? (
+                <div className="rounded-lg bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800">
+                  Waiting for payment confirmation
+                </div>
+              ) : null}
               {selected.status !== 'COMPLETED' &&
               selected.status !== 'CANCELLED' ? (
                 <button
@@ -142,4 +166,3 @@ export function DispatchOrderDetail({
     </div>
   )
 }
-

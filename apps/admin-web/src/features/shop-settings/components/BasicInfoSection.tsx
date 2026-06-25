@@ -1,5 +1,6 @@
 import type React from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card'
+import { Button } from '../../../components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '../../../components/ui/field'
 import { Input } from '../../../components/ui/input'
 import { Textarea } from '../../../components/ui/textarea'
@@ -11,6 +12,20 @@ type BasicInfoSectionProps = {
 }
 
 export function BasicInfoSection({ form, onFormChange }: BasicInfoSectionProps) {
+  const geolocationAvailable =
+    typeof navigator !== 'undefined' && Boolean(navigator.geolocation)
+
+  function useCurrentLocation() {
+    if (!geolocationAvailable) return
+    navigator.geolocation.getCurrentPosition((position) => {
+      onFormChange((current) => ({
+        ...current,
+        latitude: position.coords.latitude.toFixed(7),
+        longitude: position.coords.longitude.toFixed(7),
+      }))
+    })
+  }
+
   return (
     <Card className="shadow-sm">
       <CardHeader>
@@ -61,6 +76,49 @@ export function BasicInfoSection({ form, onFormChange }: BasicInfoSectionProps) 
               placeholder="+251 ..."
             />
           </Field>
+          <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
+            <Field>
+              <FieldLabel htmlFor="settings-latitude">Latitude</FieldLabel>
+              <Input
+                id="settings-latitude"
+                inputMode="decimal"
+                value={form.latitude}
+                onChange={(event) =>
+                  onFormChange((current) => ({
+                    ...current,
+                    latitude: event.target.value,
+                  }))
+                }
+                placeholder="9.0300000"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="settings-longitude">Longitude</FieldLabel>
+              <Input
+                id="settings-longitude"
+                inputMode="decimal"
+                value={form.longitude}
+                onChange={(event) =>
+                  onFormChange((current) => ({
+                    ...current,
+                    longitude: event.target.value,
+                  }))
+                }
+                placeholder="38.7400000"
+              />
+            </Field>
+            <div className="flex items-end">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full md:w-auto"
+                onClick={useCurrentLocation}
+                disabled={!geolocationAvailable}
+              >
+                Use current location
+              </Button>
+            </div>
+          </div>
         </FieldGroup>
       </CardContent>
     </Card>

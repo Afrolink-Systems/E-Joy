@@ -35,7 +35,10 @@ export function useMerchantOrders() {
   useNewOrderChime(orders)
 
   const pendingOrders = useMemo(
-    () => orders.filter((order) => order.status === 'PENDING'),
+    () =>
+      orders.filter(
+        (order) => order.status === 'PENDING' && order.paymentState !== 'PENDING',
+      ),
     [orders],
   )
 

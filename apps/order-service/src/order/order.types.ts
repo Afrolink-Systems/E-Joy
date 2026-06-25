@@ -116,6 +116,27 @@ export class ShopMenuProductModel {
 }
 
 @ObjectType()
+export class ProductReviewModel {
+  @Field(() => ID)
+  id!: string;
+
+  @Field(() => ID)
+  productId!: string;
+
+  @Field(() => Int)
+  rating!: number;
+
+  @Field()
+  comment!: string;
+
+  @Field(() => String, { nullable: true })
+  author?: string | null;
+
+  @Field(() => String)
+  createdAt!: string;
+}
+
+@ObjectType()
 export class OrderModel {
   @Field(() => ID)
   id!: string;
@@ -364,6 +385,9 @@ export class MerchantDispatchOrderLineModel {
 
   @Field(() => String, { nullable: true })
   imageUrl?: string | null;
+
+  @Field(() => String, { nullable: true })
+  remark?: string | null;
 }
 
 /** Merchant dispatch order with line items */
@@ -393,6 +417,18 @@ export class MerchantDispatchOrderModel {
 
   @Field(() => String, { nullable: true })
   tableName?: string | null;
+
+  @Field(() => PaymentState)
+  paymentState!: PaymentState;
+
+  @Field(() => PaymentMethod)
+  paymentMethod!: PaymentMethod;
+
+  @Field(() => DeliveryType)
+  deliveryType!: DeliveryType;
+
+  @Field(() => String, { nullable: true })
+  note?: string | null;
 
   @Field(() => String, { nullable: true })
   acceptedAt?: string | null;

@@ -1,4 +1,4 @@
-import { Field, InputType, Int, registerEnumType } from '@nestjs/graphql';
+import { Field, Float, InputType, Int, registerEnumType } from '@nestjs/graphql';
 import {
   Allow,
   IsBoolean,
@@ -564,6 +564,20 @@ export class UpdateShopInput {
   @Allow()
   @Field({ nullable: true })
   logoUrl?: string;
+
+  @Allow()
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
+  @Min(-90)
+  @Max(90)
+  latitude?: number | null;
+
+  @Allow()
+  @Field(() => Float, { nullable: true })
+  @IsOptional()
+  @Min(-180)
+  @Max(180)
+  longitude?: number | null;
 
   @Allow()
   @Field({ nullable: true })

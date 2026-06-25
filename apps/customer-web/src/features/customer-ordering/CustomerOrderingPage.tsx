@@ -148,6 +148,7 @@ export function CustomerOrderingPage() {
           if (!state.detailItem) return
           state.removeItem(state.detailItem.id)
         }}
+        shopId={state.shopId}
         themePreset={state.customerThemePreset}
         themeVars={state.customerThemeVars}
         onOpenChange={(open) => {
