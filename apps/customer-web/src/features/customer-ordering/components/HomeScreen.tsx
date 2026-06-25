@@ -1,4 +1,5 @@
 import { Scanner, type IDetectedBarcode } from '@yudiel/react-qr-scanner'
+import { useApolloClient } from '@apollo/client/react'
 import {
   Camera,
   ChevronRight,
@@ -10,6 +11,7 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../../../components/ui/button'
+import { CUSTOMER_SHOP, type CustomerShopRow } from '../../../graphql/customerShop'
 import { parseQrSession, type QrSession } from '../customerQrSession'
 
 type HomeScreenProps = {
@@ -21,6 +23,7 @@ type HomeScreenProps = {
 }
 
 const HOME_BACKGROUND = '/images/ejoy-addis-home-bg.png'
+const MAX_SCAN_DISTANCE_METERS = 30
 
 function getHomeShopName(shopName: string) {
   return shopName.trim() === 'E-Joy Addis Ababa' ? 'E-Joy Addis' : shopName
@@ -33,24 +36,67 @@ export function HomeScreen({
   shopName,
   tableRef,
 }: HomeScreenProps) {
+  const apollo = useApolloClient()
   const [scannerOpen, setScannerOpen] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
+  const [checkingLocation, setCheckingLocation] = useState(false)
 
   const handleScan = (codes: IDetectedBarcode[]) => {
+    if (checkingLocation) return
     const rawValue = codes[0]?.rawValue
     if (!rawValue) return
 
-    const session = parseQrSession(rawValue)
+    const session = 
+          (rawValue)
     if (!session) {
       setScanError('That QR code does not look like an E-Joy table code.')
       return
     }
 
-    onStartNewSession(session)
-    setScannerOpen(false)
-    setScanError(null)
-    toast.success(`Table ${session.table} selected.`)
-    onContinue()
+    void confirmNearbyAndStart(session)
+  }
+
+  async function confirmNearbyAndStart(session: QrSession) {
+    setCheckingLocation(true)
+    setScanError('Checking your location...')
+    try {
+      const shopResult = await apollo.query<{ customerShop: CustomerShopRow | null }>({
+        query: CUSTOMER_SHOP,
+        variables: { shopId: session.shopId },
+        fetchPolicy: 'network-only',
+      })
+      const shop = shopResult.data?.customerShop
+      if (
+        typeof shop?.latitude !== 'number' ||
+        typeof shop.longitude !== 'number'
+      ) {
+        setScanError('This restaurant has not configured its location yet.')
+        return
+      }
+      const position = await getCurrentPosition()
+      const distanceMeters = distanceBetweenMeters(
+        position.coords.latitude,
+        position.coords.longitude,
+        shop.latitude,
+        shop.longitude,
+      )
+      if (distanceMeters > MAX_SCAN_DISTANCE_METERS) {
+        setScanError(
+          `You are ${Math.round(distanceMeters)}m away. Please scan within ${MAX_SCAN_DISTANCE_METERS}m of the restaurant.`,
+        )
+        return
+      }
+      onStartNewSession(session)
+      setScannerOpen(false)
+      setScanError(null)
+      toast.success(`Table ${session.table} selected.`)
+      onContinue()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Location check failed.'
+      setScanError(message)
+    } finally {
+      setCheckingLocation(false)
+    }
   }
 
   return (
@@ -143,6 +189,7 @@ export function HomeScreen({
       {scannerOpen ? (
         <QrScannerPanel
           error={scanError}
+          checkingLocation={checkingLocation}
           onClose={() => setScannerOpen(false)}
           onError={(message) => setScanError(message)}
           onScan={handleScan}
@@ -152,12 +199,52 @@ export function HomeScreen({
   )
 }
 
+function getCurrentPosition(): Promise<GeolocationPosition> {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Location permission is required before scanning.'))
+      return
+    }
+    navigator.geolocation.getCurrentPosition(resolve, () => {
+      reject(new Error('Please allow location access to scan this table QR.'))
+    }, {
+      enableHighAccuracy: true,
+      maximumAge: 15000,
+      timeout: 10000,
+    })
+  })
+}
+
+function distanceBetweenMeters(
+  latA: number,
+  lonA: number,
+  latB: number,
+  lonB: number,
+): number {
+  const earthRadiusMeters = 6371000
+  const dLat = toRadians(latB - latA)
+  const dLon = toRadians(lonB - lonA)
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRadians(latA)) *
+      Math.cos(toRadians(latB)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2)
+  return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
+
+function toRadians(value: number): number {
+  return (value * Math.PI) / 180
+}
+
 function QrScannerPanel({
+  checkingLocation,
   error,
   onClose,
   onError,
   onScan,
 }: {
+  checkingLocation: boolean
   error: string | null
   onClose: () => void
   onError: (message: string) => void
@@ -196,6 +283,11 @@ function QrScannerPanel({
               video: { width: '100%', height: '100%', objectFit: 'cover' },
             }}
           />
+          {checkingLocation ? (
+            <div className="absolute inset-0 grid place-items-center bg-[#120c08]/72 text-sm font-black text-[#fffdfa]">
+              Checking location...
+            </div>
+          ) : null}
           <div className="pointer-events-none absolute inset-10 rounded-[1.5rem] border-2 border-[#fffdfa]/82 shadow-[0_0_0_999px_rgba(0,0,0,0.22)]" />
           <Camera className="pointer-events-none absolute left-1/2 top-1/2 size-10 -translate-x-1/2 -translate-y-1/2 text-[#fffdfa]/80" />
         </div>

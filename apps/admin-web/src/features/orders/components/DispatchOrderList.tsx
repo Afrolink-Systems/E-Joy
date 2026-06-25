@@ -54,14 +54,17 @@ export function DispatchOrderList({
                     <span
                       className={[
                         'rounded-full px-2 py-0.5 text-xs font-semibold uppercase',
-                        orderStatusClass(order.status),
+                        order.paymentState === 'PENDING'
+                          ? 'bg-amber-100 text-amber-700'
+                          : orderStatusClass(order.status),
                       ].join(' ')}
                     >
-                      {order.status}
+                      {order.paymentState === 'PENDING' ? 'PAYMENT' : order.status}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-500">
                     <span>{formatRelativeEn(order.createdAt)}</span>
+                    <span>{order.tableName?.trim() || 'No table'}</span>
                     <span className="font-semibold text-slate-800">
                       {formatBirr(order.totalAmount)}
                     </span>
@@ -75,4 +78,3 @@ export function DispatchOrderList({
     </div>
   )
 }
-

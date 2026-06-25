@@ -8,6 +8,10 @@ export const MERCHANT_DISPATCH_ORDERS = gql`
       totalAmount
       status
       orderState
+      paymentState
+      paymentMethod
+      deliveryType
+      note
       createdAt
       shopName
       tableName
@@ -17,6 +21,7 @@ export const MERCHANT_DISPATCH_ORDERS = gql`
         productName
         quantity
         imageUrl
+        remark
       }
     }
   }
@@ -30,6 +35,10 @@ export const UPDATE_ORDER_STATUS = gql`
       totalAmount
       status
       orderState
+      paymentState
+      paymentMethod
+      deliveryType
+      note
       createdAt
       shopName
       tableName
@@ -39,6 +48,7 @@ export const UPDATE_ORDER_STATUS = gql`
         productName
         quantity
         imageUrl
+        remark
       }
     }
   }
@@ -50,6 +60,10 @@ export type MerchantDispatchOrderRow = {
   totalAmount: number
   status: 'PENDING' | 'PREPARING' | 'COMPLETED' | 'CANCELLED'
   orderState: string
+  paymentState: string
+  paymentMethod: string
+  deliveryType: string
+  note?: string | null
   createdAt: string
   shopName: string
   tableName?: string | null
@@ -59,6 +73,7 @@ export type MerchantDispatchOrderRow = {
     productName: string
     quantity: number
     imageUrl?: string | null
+    remark?: string | null
   }>
 }
 

@@ -33,6 +33,7 @@ import {
   PaymentChannel,
   PaymentPayload,
   PaymentState,
+  ProductReviewModel,
   ShopMenuProductModel,
 } from './order.types';
 import {
@@ -43,6 +44,7 @@ import {
   ConfirmPaymentCallbackInput,
   CreateAddressInput,
   CreateOrderInput,
+  CreateProductReviewInput,
   DeliveryOrderFilterInput,
   DeliveryConfigInput,
   InitiatePaymentInput,
@@ -1523,11 +1525,10 @@ export class OrderService {
   async merchantDispatchOrders(
     shopId: string,
   ): Promise<MerchantDispatchOrderModel[]> {
-    const stateNotPaidDraft = {
+    const stateVisibleToMerchant = {
       state: {
         notIn: [
           OrderState.DRAFT,
-          OrderState.PENDING_PAYMENT,
           OrderState.PAYMENT_FAILED,
         ],
       },
@@ -1545,8 +1546,8 @@ export class OrderService {
 
     const rows = await this.prisma.order.findMany({
       where: debugAllOrders
-        ? stateNotPaidDraft
-        : { shopId, ...stateNotPaidDraft },
+        ? stateVisibleToMerchant
+        : { shopId, ...stateVisibleToMerchant },
       orderBy: { createdAt: 'desc' },
       take: 200,
       include: {
@@ -1909,6 +1910,67 @@ export class OrderService {
   /** 顾客端公开：门店上架商品菜单，单价为数据库 unitPrice（分，整数） */
   async shopMenuProducts(shopId: string): Promise<ShopMenuProductModel[]> {
     return this.shopMenuQueryWorkflow.shopMenuProducts(shopId);
+  }
+
+  async productReviews(
+    shopId: string,
+    productId: string,
+  ): Promise<ProductReviewModel[]> {
+    const rows = await this.prisma.productReview.findMany({
+      where: { shopId, productId },
+      orderBy: { createdAt: 'desc' },
+      take: 25,
+    });
+    return rows.map((row) => ({
+      id: row.id,
+      productId: row.productId,
+      rating: row.rating,
+      comment: row.comment,
+      author: row.author,
+      createdAt: row.createdAt.toISOString(),
+    }));
+  }
+
+  async createProductReview(
+    input: CreateProductReviewInput,
+    userId?: string,
+  ): Promise<ProductReviewModel> {
+    const comment = input.comment.trim();
+    if (!comment) {
+      throw new BadRequestException('Review comment is required');
+    }
+    const product = await this.prisma.product.findFirst({
+      where: {
+        id: input.productId,
+        shopId: input.shopId,
+        active: true,
+        status: 'ACTIVE',
+      } as Record<string, unknown>,
+      select: { id: true },
+    });
+    if (!product) {
+      throw new BadRequestException('Product is unavailable');
+    }
+    const rating = Math.min(5, Math.max(1, input.rating ?? 5));
+    const author = input.author?.trim() || null;
+    const row = await this.prisma.productReview.create({
+      data: {
+        shopId: input.shopId,
+        productId: input.productId,
+        userId,
+        author,
+        rating,
+        comment,
+      },
+    });
+    return {
+      id: row.id,
+      productId: row.productId,
+      rating: row.rating,
+      comment: row.comment,
+      author: row.author,
+      createdAt: row.createdAt.toISOString(),
+    };
   }
 
   async checkDelivery(

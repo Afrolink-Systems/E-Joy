@@ -20,6 +20,8 @@ export class ShopResolver {
         description: true,
         contactPhone: true,
         logoUrl: true,
+        latitude: true,
+        longitude: true,
         customerThemePreset: true,
         customerThemeOverridesJson: true,
         active: true,
@@ -42,6 +44,8 @@ export class ShopResolver {
         description: true,
         contactPhone: true,
         logoUrl: true,
+        latitude: true,
+        longitude: true,
         customerThemePreset: true,
         customerThemeOverridesJson: true,
         active: true,
@@ -60,6 +64,8 @@ export class ShopResolver {
       description: row.description ?? undefined,
       contactPhone: row.contactPhone ?? undefined,
       logoUrl: row.logoUrl ?? undefined,
+      latitude: row.latitude,
+      longitude: row.longitude,
       customerThemePreset: row.customerThemePreset ?? undefined,
       customerThemeOverrides: this.parseCustomerThemeOverrides(
         row.customerThemeOverridesJson,
@@ -88,6 +94,8 @@ type ShopRow = {
   description: string | null;
   contactPhone: string | null;
   logoUrl: string | null;
+  latitude: number | null;
+  longitude: number | null;
   customerThemePreset: string | null;
   customerThemeOverridesJson: string | null;
   active: boolean;

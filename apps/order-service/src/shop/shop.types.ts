@@ -1,4 +1,4 @@
-import { Field, ID, ObjectType } from '@nestjs/graphql';
+import { Field, Float, ID, ObjectType } from '@nestjs/graphql';
 
 @ObjectType('CustomerThemeOverrides')
 export class CustomerThemeOverridesModel {
@@ -61,6 +61,12 @@ export class ShopModel {
 
   @Field({ nullable: true })
   logoUrl?: string;
+
+  @Field(() => Float, { nullable: true })
+  latitude?: number | null;
+
+  @Field(() => Float, { nullable: true })
+  longitude?: number | null;
 
   @Field({ nullable: true })
   customerThemePreset?: string;

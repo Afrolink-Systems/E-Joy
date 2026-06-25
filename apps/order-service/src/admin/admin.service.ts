@@ -1334,6 +1334,8 @@ export class AdminService {
                 input.logoUrl.trim() === '' ? null : input.logoUrl.trim(),
             }
           : {}),
+        ...(input.latitude !== undefined ? { latitude: input.latitude } : {}),
+        ...(input.longitude !== undefined ? { longitude: input.longitude } : {}),
         ...(customerThemePreset !== undefined ? { customerThemePreset } : {}),
         ...(customerThemeOverrides !== undefined
           ? {
@@ -1361,6 +1363,8 @@ export class AdminService {
       contactPhone:
         typeof row.contactPhone === 'string' ? row.contactPhone : undefined,
       logoUrl: typeof row.logoUrl === 'string' ? row.logoUrl : undefined,
+      latitude: typeof row.latitude === 'number' ? row.latitude : null,
+      longitude: typeof row.longitude === 'number' ? row.longitude : null,
       customerThemePreset:
         typeof row.customerThemePreset === 'string'
           ? row.customerThemePreset

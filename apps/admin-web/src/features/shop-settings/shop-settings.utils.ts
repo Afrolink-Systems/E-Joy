@@ -125,6 +125,8 @@ export function emptyShopSettingsForm(): ShopSettingsFormState {
     description: '',
     contactPhone: '',
     logoUrl: '',
+    latitude: '',
+    longitude: '',
     isOpen: true,
     customerThemePreset: 'ejoy-default',
     customerThemeOverrides: emptyThemeOverrides(),
@@ -159,6 +161,8 @@ export function mapShopToForm(shop: ShopConfigRow): ShopSettingsFormState {
     description: shop.description ?? '',
     contactPhone: shop.contactPhone ?? '',
     logoUrl: shop.logoUrl ?? '',
+    latitude: typeof shop.latitude === 'number' ? String(shop.latitude) : '',
+    longitude: typeof shop.longitude === 'number' ? String(shop.longitude) : '',
     isOpen: shop.active,
     customerThemePreset: isThemePreset(shop.customerThemePreset)
       ? shop.customerThemePreset
@@ -193,4 +197,3 @@ export function getPreviewTokens(form: ShopSettingsFormState): ThemeTokenMap {
 export function normalizeColorValue(value: string): string {
   return /^#[0-9a-f]{6}$/i.test(value) ? value : '#d29a31'
 }
-

@@ -8,6 +8,8 @@ export const SHOP = gql`
       description
       contactPhone
       logoUrl
+      latitude
+      longitude
       customerThemePreset
       customerThemeOverrides {
         primary
@@ -38,6 +40,8 @@ export const UPDATE_SHOP = gql`
       description
       contactPhone
       logoUrl
+      latitude
+      longitude
       customerThemePreset
       customerThemeOverrides {
         primary
@@ -83,6 +87,8 @@ export type ShopConfigRow = {
   description?: string | null
   contactPhone?: string | null
   logoUrl?: string | null
+  latitude?: number | null
+  longitude?: number | null
   customerThemePreset?: string | null
   customerThemeOverrides?: ShopThemeOverrides | null
   active: boolean

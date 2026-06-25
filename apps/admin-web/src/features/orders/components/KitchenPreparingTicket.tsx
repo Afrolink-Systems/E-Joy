@@ -41,6 +41,11 @@ export function KitchenPreparingTicket({
           >
             <span className="min-w-0 flex-1 text-slate-900">
               {line.productName}
+              {line.remark?.trim() ? (
+                <span className="mt-0.5 block text-xs text-amber-700">
+                  Note: {line.remark}
+                </span>
+              ) : null}
             </span>
             <span
               className={
@@ -78,4 +83,3 @@ export function KitchenPreparingTicket({
     </div>
   )
 }
-
