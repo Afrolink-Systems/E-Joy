@@ -12,7 +12,6 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../../../components/ui/button'
 import { CUSTOMER_SHOP, type CustomerShopRow } from '../../../graphql/customerShop'
-import { parseQrSession, type QrSession } from '../customerQrSession'
 
 type HomeScreenProps = {
   hasTableSession: boolean
