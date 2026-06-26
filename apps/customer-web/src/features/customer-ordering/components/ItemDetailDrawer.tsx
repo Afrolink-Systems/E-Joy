@@ -96,36 +96,6 @@ export function ItemDetailDrawer({
     }
   }
 
-  async function submitReview() {
-    const productId = item?.id
-    if (!productId) return
-    const comment = reviewText.trim()
-    if (!comment) {
-      toast.error('Please write a short review first.')
-      return
-    }
-    try {
-      await createReview({
-        variables: {
-          input: {
-            shopId,
-            productId,
-            rating: reviewRating,
-            comment,
-          },
-        },
-      })
-      setReviewText('')
-      setReviewRating(5)
-      setReviewsOpen(true)
-      await reviewsQuery.refetch()
-      toast.success('Thanks for sharing your review.')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Review failed'
-      toast.error(message)
-    }
-  }
-
   return (
     <section
       className="fixed inset-y-0 left-1/2 z-50 flex w-[min(480px,100vw)] -translate-x-1/2 flex-col overflow-hidden bg-background text-foreground"
