@@ -61,7 +61,7 @@ export function CustomerOrderingPage() {
               state.addItem({ id: item.id, imageUrl: item.imageUrl, name: item.name, price: item.unitPrice })
             }}
             onRemove={(item) => state.removeItem(item.id)}
-            onCheckout={state.payWithTelebirr}
+            onOpenOrders={() => navigate('/orders')}
             onOpenAccount={() => state.setAccountDialogOpen(true)}
             onOpenCart={() => state.setCartOpen(true)}
             onOpenDetail={state.setDetailItem}
@@ -142,7 +142,7 @@ export function CustomerOrderingPage() {
         cartTotalPrice={state.totalPrice}
         cartTotalQuantity={state.totalQuantity}
         item={state.detailItem}
-        onCheckout={state.payWithTelebirr}
+        onOpenOrders={() => navigate('/orders')}
         onOpenCart={() => state.setCartOpen(true)}
         onRemove={() => {
           if (!state.detailItem) return

@@ -19,9 +19,9 @@ type ItemDetailDrawerProps = {
   cartTotalQuantity: number
   item: MenuItem | null
   onAdd: () => void
-  onCheckout: () => Promise<void>
   onOpenCart: () => void
   onOpenChange: (open: boolean) => void
+  onOpenOrders: () => void
   onRemove: () => void
   shopId: string
   themePreset: string
@@ -34,9 +34,9 @@ export function ItemDetailDrawer({
   cartTotalQuantity,
   item,
   onAdd,
-  onCheckout,
   onOpenCart,
   onOpenChange,
+  onOpenOrders,
   onRemove,
   shopId,
   themePreset,
@@ -66,11 +66,34 @@ export function ItemDetailDrawer({
 
   const description = itemDescription(item)
 
-  function checkout() {
-    onCheckout().catch((err: unknown) => {
-      const message = err instanceof Error ? err.message : 'Checkout failed'
+  async function submitReview() {
+    const productId = item?.id
+    if (!productId) return
+    const comment = reviewText.trim()
+    if (!comment) {
+      toast.error('Please write a short review first.')
+      return
+    }
+    try {
+      await createReview({
+        variables: {
+          input: {
+            shopId,
+            productId,
+            rating: reviewRating,
+            comment,
+          },
+        },
+      })
+      setReviewText('')
+      setReviewRating(5)
+      setReviewsOpen(true)
+      await reviewsQuery.refetch()
+      toast.success('Thanks for sharing your review.')
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Review failed'
       toast.error(message)
-    })
+    }
   }
 
   async function submitReview() {
@@ -179,10 +202,10 @@ export function ItemDetailDrawer({
       </div>
 
       <FloatingCartBar
-        actionLabel="Checkout"
+        actionLabel="Orders"
         count={cartTotalQuantity}
-        disabled={cartTotalQuantity === 0}
-        onAction={checkout}
+        disabled={false}
+        onAction={onOpenOrders}
         onCart={onOpenCart}
         totalPrice={cartTotalPrice}
       />
