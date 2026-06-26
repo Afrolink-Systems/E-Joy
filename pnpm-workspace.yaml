@@ -5,3 +5,11 @@ packages:
   - "apps/customer-web"
   - "apps/mawa-web"
   - "packages/*"
+allowBuilds:
+  '@apollo/protobufjs': true
+  '@nestjs/core': true
+  '@prisma/engines': true
+  esbuild: true
+  msw: true
+  prisma: true
+  unrs-resolver: true

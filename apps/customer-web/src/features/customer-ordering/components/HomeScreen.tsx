@@ -12,7 +12,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../../../components/ui/button'
 import { CUSTOMER_SHOP, type CustomerShopRow } from '../../../graphql/customerShop'
-import { type QrSession } from '../customerQrSession'
+import { parseQrSession, type QrSession } from '../customerQrSession'
 type HomeScreenProps = {
   hasTableSession: boolean
   onContinue: () => void
@@ -45,8 +45,7 @@ export function HomeScreen({
     const rawValue = codes[0]?.rawValue
     if (!rawValue) return
 
-    const session = 
-          (rawValue)
+    const session = parseQrSession(rawValue)
     if (!session) {
       setScanError('That QR code does not look like an E-Joy table code.')
       return
