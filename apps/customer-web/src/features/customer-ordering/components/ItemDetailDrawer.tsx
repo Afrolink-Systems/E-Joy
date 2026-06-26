@@ -19,9 +19,9 @@ type ItemDetailDrawerProps = {
   cartTotalQuantity: number
   item: MenuItem | null
   onAdd: () => void
-  onCheckout: () => Promise<void>
   onOpenCart: () => void
   onOpenChange: (open: boolean) => void
+  onOpenOrders: () => void
   onRemove: () => void
   shopId: string
   themePreset: string
@@ -34,9 +34,9 @@ export function ItemDetailDrawer({
   cartTotalQuantity,
   item,
   onAdd,
-  onCheckout,
   onOpenCart,
   onOpenChange,
+  onOpenOrders,
   onRemove,
   shopId,
   themePreset,
@@ -65,13 +65,6 @@ export function ItemDetailDrawer({
   if (!item) return null
 
   const description = itemDescription(item)
-
-  function checkout() {
-    onCheckout().catch((err: unknown) => {
-      const message = err instanceof Error ? err.message : 'Checkout failed'
-      toast.error(message)
-    })
-  }
 
   async function submitReview() {
     const productId = item?.id
@@ -179,10 +172,10 @@ export function ItemDetailDrawer({
       </div>
 
       <FloatingCartBar
-        actionLabel="Checkout"
+        actionLabel="Orders"
         count={cartTotalQuantity}
-        disabled={cartTotalQuantity === 0}
-        onAction={checkout}
+        disabled={false}
+        onAction={onOpenOrders}
         onCart={onOpenCart}
         totalPrice={cartTotalPrice}
       />

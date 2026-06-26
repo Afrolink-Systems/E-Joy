@@ -1,5 +1,4 @@
 import { Home, Info, Search, ShoppingBasket, UserRound, X } from 'lucide-react'
-import { toast } from 'sonner'
 import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert'
 import { Button } from '../../../components/ui/button'
 import {
@@ -24,7 +23,7 @@ type MenuScreenProps = {
   menuRows: MenuItem[]
   onAdd: (item: MenuItem) => void
   onRemove: (item: MenuItem) => void
-  onCheckout: () => Promise<void>
+  onOpenOrders: () => void
   onOpenAccount: () => void
   onOpenCart: () => void
   onOpenDetail: (item: MenuItem) => void
@@ -44,15 +43,6 @@ type MenuScreenProps = {
 }
 
 export function MenuScreen(props: MenuScreenProps) {
-  const hasCartItems = props.totalQuantity > 0
-
-  function checkout() {
-    props.onCheckout().catch((err: unknown) => {
-      const message = err instanceof Error ? err.message : 'Checkout failed'
-      toast.error(message)
-    })
-  }
-
   return (
     <section className="relative flex h-svh min-h-svh flex-col overflow-hidden bg-background text-foreground">
       <header className="shrink-0 px-4 pt-[calc(env(safe-area-inset-top)+10px)] max-[370px]:px-3">
@@ -170,10 +160,10 @@ export function MenuScreen(props: MenuScreenProps) {
 
       {props.showFloatingCartBar ? (
         <FloatingCartBar
-          actionLabel="Checkout"
+          actionLabel="Orders"
           count={props.totalQuantity}
-          disabled={!hasCartItems}
-          onAction={checkout}
+          disabled={false}
+          onAction={props.onOpenOrders}
           onCart={props.onOpenCart}
           totalPrice={props.totalPrice}
         />

@@ -73,7 +73,7 @@ describe('customer ordering components', () => {
         menuRows={rows}
         onAdd={onAdd}
         onRemove={vi.fn()}
-        onCheckout={vi.fn()}
+        onOpenOrders={vi.fn()}
         onOpenAccount={vi.fn()}
         onOpenCart={vi.fn()}
         onOpenDetail={onOpenDetail}
@@ -96,7 +96,7 @@ describe('customer ordering components', () => {
     expect(screen.queryByText('CARD')).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Awaze Tibs' })).toBeInTheDocument()
     expect(screen.getAllByText((_, element) => element?.textContent === '0ETB').length).toBeGreaterThan(0)
-    expect(screen.getByRole('button', { name: 'Checkout' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Orders' })).toBeEnabled()
 
     await user.click(screen.getByRole('button', { name: 'Main' }))
     await user.click(screen.getByRole('button', { name: 'Add Awaze Tibs' }))
@@ -108,7 +108,7 @@ describe('customer ordering components', () => {
   it('shows the sticky cart bar when menu has cart items', async () => {
     const user = userEvent.setup()
     const onOpenCart = vi.fn()
-    const onCheckout = vi.fn().mockResolvedValue(undefined)
+    const onOpenOrders = vi.fn()
 
     render(
       <MenuScreen
@@ -118,7 +118,7 @@ describe('customer ordering components', () => {
         menuRows={[]}
         onAdd={vi.fn()}
         onRemove={vi.fn()}
-        onCheckout={onCheckout}
+        onOpenOrders={onOpenOrders}
         onOpenAccount={vi.fn()}
         onOpenCart={onOpenCart}
         onOpenDetail={vi.fn()}
@@ -143,8 +143,8 @@ describe('customer ordering components', () => {
     expect(screen.getAllByText((_, element) => element?.textContent === '780ETB').length).toBeGreaterThan(0)
     expect(onOpenCart).toHaveBeenCalledTimes(1)
 
-    await user.click(screen.getByRole('button', { name: 'Checkout' }))
-    expect(onCheckout).toHaveBeenCalledTimes(1)
+    await user.click(screen.getByRole('button', { name: 'Orders' }))
+    expect(onOpenOrders).toHaveBeenCalledTimes(1)
   })
 
   it('starts payment from the cart page without inline payment feedback', async () => {
