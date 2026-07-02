@@ -322,6 +322,7 @@ type MerchantDispatchOrder {
   items: [MerchantDispatchOrderLine!]!
   orderNo: String!
   orderState: OrderState!
+  shopId: String!
   shopName: String!
   status: OrderStatus!
   tableName: String

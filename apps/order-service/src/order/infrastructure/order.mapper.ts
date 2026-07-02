@@ -42,6 +42,7 @@ export function merchantStatusFromOrderState(state: string): PrismaOrderStatus {
 export function toMerchantDispatchOrder(o: {
   id: string;
   orderNo: string;
+  shopId: string;
   totalAmount: number;
   status: PrismaOrderStatus;
   state: string;
@@ -72,6 +73,7 @@ export function toMerchantDispatchOrder(o: {
     deliveryType: o.deliveryType as DeliveryType,
     note: o.note,
     createdAt: o.createdAt.toISOString(),
+    shopId: o.shopId,
     shopName: o.shop.name,
     tableName: o.table?.name ?? null,
     acceptedAt: o.acceptedAt?.toISOString() ?? null,

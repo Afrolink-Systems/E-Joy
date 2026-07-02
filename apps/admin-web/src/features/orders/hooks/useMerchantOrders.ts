@@ -23,14 +23,19 @@ export function useMerchantOrders() {
     MERCHANT_DISPATCH_ORDERS,
     {
       variables: { shopId },
+      skip: !shopId,
       pollInterval: pollMs,
       fetchPolicy: 'network-only',
+      nextFetchPolicy: 'network-only',
     },
   )
 
   const orders = useMemo(
-    () => data?.merchantDispatchOrders ?? [],
-    [data?.merchantDispatchOrders],
+    () =>
+      shopId
+        ? (data?.merchantDispatchOrders ?? []).filter((order) => order.shopId === shopId)
+        : [],
+    [data?.merchantDispatchOrders, shopId],
   )
   useNewOrderChime(orders)
 
@@ -53,10 +58,18 @@ export function useMerchantOrders() {
   )
 
   useEffect(() => {
+    if (!shopId) {
+      setSelectedId(null)
+      return
+    }
+    if (selectedId && !orders.some((order) => order.id === selectedId)) {
+      setSelectedId(null)
+      return
+    }
     if (!selectedId && orders.length > 0) {
       setSelectedId(orders[0].id)
     }
-  }, [orders, selectedId])
+  }, [orders, selectedId, shopId])
 
   const [mutate, { loading: mutating }] = useMutation(UPDATE_ORDER_STATUS, {
     onCompleted: () => void refetch(),
