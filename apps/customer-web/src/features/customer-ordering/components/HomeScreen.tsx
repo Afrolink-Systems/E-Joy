@@ -1,5 +1,4 @@
 import { Scanner, type IDetectedBarcode } from '@yudiel/react-qr-scanner'
-import { useApolloClient } from '@apollo/client/react'
 import {
   Camera,
   ChevronRight,
@@ -11,7 +10,6 @@ import {
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '../../../components/ui/button'
-import { CUSTOMER_SHOP, type CustomerShopRow } from '../../../graphql/customerShop'
 import { parseQrSession, type QrSession } from '../customerQrSession'
 type HomeScreenProps = {
   hasTableSession: boolean
@@ -22,7 +20,7 @@ type HomeScreenProps = {
 }
 
 const HOME_BACKGROUND = '/images/ejoy-addis-home-bg.png'
-const MAX_SCAN_DISTANCE_METERS = 30
+// const MAX_SCAN_DISTANCE_METERS = 30
 
 function getHomeShopName(shopName: string) {
   return shopName.trim() === 'E-Joy Addis Ababa' ? 'E-Joy Addis' : shopName
@@ -35,7 +33,7 @@ export function HomeScreen({
   shopName,
   tableRef,
 }: HomeScreenProps) {
-  const apollo = useApolloClient()
+  // const apollo = useApolloClient()
   const [scannerOpen, setScannerOpen] = useState(false)
   const [scanError, setScanError] = useState<string | null>(null)
   const [checkingLocation, setCheckingLocation] = useState(false)
@@ -56,34 +54,35 @@ export function HomeScreen({
 
   async function confirmNearbyAndStart(session: QrSession) {
     setCheckingLocation(true)
-    setScanError('Checking your location...')
+    setScanError('Checking table QR...')
     try {
-      const shopResult = await apollo.query<{ customerShop: CustomerShopRow | null }>({
-        query: CUSTOMER_SHOP,
-        variables: { shopId: session.shopId },
-        fetchPolicy: 'network-only',
-      })
-      const shop = shopResult.data?.customerShop
-      if (
-        typeof shop?.latitude !== 'number' ||
-        typeof shop.longitude !== 'number'
-      ) {
-        setScanError('This restaurant has not configured its location yet.')
-        return
-      }
-      const position = await getCurrentPosition()
-      const distanceMeters = distanceBetweenMeters(
-        position.coords.latitude,
-        position.coords.longitude,
-        shop.latitude,
-        shop.longitude,
-      )
-      if (distanceMeters > MAX_SCAN_DISTANCE_METERS) {
-        setScanError(
-          `You are ${Math.round(distanceMeters)}m away. Please scan within ${MAX_SCAN_DISTANCE_METERS}m of the restaurant.`,
-        )
-        return
-      }
+      // Location restriction is disabled for the QR scan flow.
+      // const shopResult = await apollo.query<{ customerShop: CustomerShopRow | null }>({
+      //   query: CUSTOMER_SHOP,
+      //   variables: { shopId: session.shopId },
+      //   fetchPolicy: 'network-only',
+      // })
+      // const shop = shopResult.data?.customerShop
+      // if (
+      //   typeof shop?.latitude !== 'number' ||
+      //   typeof shop.longitude !== 'number'
+      // ) {
+      //   setScanError('This restaurant has not configured its location yet.')
+      //   return
+      // }
+      // const position = await getCurrentPosition()
+      // const distanceMeters = distanceBetweenMeters(
+      //   position.coords.latitude,
+      //   position.coords.longitude,
+      //   shop.latitude,
+      //   shop.longitude,
+      // )
+      // if (distanceMeters > MAX_SCAN_DISTANCE_METERS) {
+      //   setScanError(
+      //     `You are ${Math.round(distanceMeters)}m away. Please scan within ${MAX_SCAN_DISTANCE_METERS}m of the restaurant.`,
+      //   )
+      //   return
+      // }
       onStartNewSession(session)
       setScannerOpen(false)
       setScanError(null)
@@ -197,43 +196,43 @@ export function HomeScreen({
   )
 }
 
-function getCurrentPosition(): Promise<GeolocationPosition> {
-  return new Promise((resolve, reject) => {
-    if (!navigator.geolocation) {
-      reject(new Error('Location permission is required before scanning.'))
-      return
-    }
-    navigator.geolocation.getCurrentPosition(resolve, () => {
-      reject(new Error('Please allow location access to scan this table QR.'))
-    }, {
-      enableHighAccuracy: true,
-      maximumAge: 15000,
-      timeout: 10000,
-    })
-  })
-}
+// function getCurrentPosition(): Promise<GeolocationPosition> {
+//   return new Promise((resolve, reject) => {
+//     if (!navigator.geolocation) {
+//       reject(new Error('Location permission is required before scanning.'))
+//       return
+//     }
+//     navigator.geolocation.getCurrentPosition(resolve, () => {
+//       reject(new Error('Please allow location access to scan this table QR.'))
+//     }, {
+//       enableHighAccuracy: true,
+//       maximumAge: 15000,
+//       timeout: 10000,
+//     })
+//   })
+// }
 
-function distanceBetweenMeters(
-  latA: number,
-  lonA: number,
-  latB: number,
-  lonB: number,
-): number {
-  const earthRadiusMeters = 6371000
-  const dLat = toRadians(latB - latA)
-  const dLon = toRadians(lonB - lonA)
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(toRadians(latA)) *
-      Math.cos(toRadians(latB)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2)
-  return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
-}
+// function distanceBetweenMeters(
+//   latA: number,
+//   lonA: number,
+//   latB: number,
+//   lonB: number,
+// ): number {
+//   const earthRadiusMeters = 6371000
+//   const dLat = toRadians(latB - latA)
+//   const dLon = toRadians(lonB - lonA)
+//   const a =
+//     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+//     Math.cos(toRadians(latA)) *
+//       Math.cos(toRadians(latB)) *
+//       Math.sin(dLon / 2) *
+//       Math.sin(dLon / 2)
+//   return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+// }
 
-function toRadians(value: number): number {
-  return (value * Math.PI) / 180
-}
+// function toRadians(value: number): number {
+//   return (value * Math.PI) / 180
+// }
 
 function QrScannerPanel({
   checkingLocation,
