@@ -106,6 +106,14 @@ export function useCustomerOrderingApp() {
     tableRef: session.tableRef,
   })
 
+  async function requestPayWithTelebirr() {
+    if (!account.isSignedIn) {
+      setAccountDialogOpen(true)
+      return
+    }
+    await checkout.payWithTelebirr()
+  }
+
   function startNewTableSession(nextSession: { shopId: string; table: string }) {
     resetVisitState()
     setEndSessionConfirmOpen(false)
@@ -209,6 +217,7 @@ export function useCustomerOrderingApp() {
     menuRows: menu.menuRows,
     orderNote,
     payWithTelebirr: checkout.payWithTelebirr,
+    requestPayWithTelebirr,
     refetch: menu.refetch,
     removeItem,
     requestEndSession,

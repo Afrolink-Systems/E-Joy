@@ -1,8 +1,8 @@
 import { gql } from '@apollo/client'
 
 export const GET_ORDERS_QUERY = gql`
-  query CustomerOrders($ids: [ID!]) {
-    getOrders(ids: $ids) {
+  query CustomerOrders {
+    customerOrders {
       id
       totalAmount
       status
@@ -20,7 +20,7 @@ export const GET_ORDERS_QUERY = gql`
 `
 
 export type CustomerOrdersData = {
-  getOrders: Array<{
+  customerOrders: Array<{
     id: string
     totalAmount: number
     status: string

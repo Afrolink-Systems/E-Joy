@@ -648,6 +648,7 @@ type Query {
   businessReport(range: ReportRangeInput!, shopId: String): BusinessReportModel!
   checkDelivery(address: AddressInput!, shopId: String!): DeliveryCheckResultModel!
   categories(shopId: String): [CategoryModel!]!
+  customerOrders: [Order!]!
   deliveryConfig(shopId: String!): ShopDeliveryConfigModel!
   deliveryOrders(filters: DeliveryOrderFilterInput, shopId: String!): [OrderModel!]!
   dependencyHealth: DependencyHealthModel!
