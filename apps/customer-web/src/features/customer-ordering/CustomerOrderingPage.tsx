@@ -174,7 +174,7 @@ export function CustomerOrderingPage() {
         onClear={state.clearCart}
         open={state.cartOpen}
         onOpenChange={state.setCartOpen}
-        onPay={state.payWithTelebirr}
+        onPay={state.requestPayWithTelebirr}
         removeItem={state.removeItem}
         setNote={state.setOrderNote}
         themePreset={state.customerThemePreset}

@@ -1,10 +1,11 @@
 import { gql } from '@apollo/client'
 
 export const MERCHANT_DISPATCH_ORDERS = gql`
-  query MerchantDispatchOrders($shopId: String) {
+  query MerchantDispatchOrders($shopId: String!) {
     merchantDispatchOrders(shopId: $shopId) {
       id
       orderNo
+      shopId
       totalAmount
       status
       orderState
@@ -28,10 +29,11 @@ export const MERCHANT_DISPATCH_ORDERS = gql`
 `
 
 export const UPDATE_ORDER_STATUS = gql`
-  mutation UpdateOrderStatus($id: String!, $status: OrderStatus!, $shopId: String) {
+  mutation UpdateOrderStatus($id: String!, $status: OrderStatus!, $shopId: String!) {
     updateOrderStatus(id: $id, status: $status, shopId: $shopId) {
       id
       orderNo
+      shopId
       totalAmount
       status
       orderState
@@ -57,6 +59,7 @@ export const UPDATE_ORDER_STATUS = gql`
 export type MerchantDispatchOrderRow = {
   id: string
   orderNo: string
+  shopId: string
   totalAmount: number
   status: 'PENDING' | 'PREPARING' | 'COMPLETED' | 'CANCELLED'
   orderState: string

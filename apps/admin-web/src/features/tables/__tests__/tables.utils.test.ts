@@ -51,6 +51,7 @@ function orderRow(
   return {
     id,
     orderNo: id,
+    shopId: 'shop-1',
     totalAmount: 100,
     status,
     orderState: status,

@@ -413,6 +413,9 @@ export class MerchantDispatchOrderModel {
   createdAt!: string;
 
   @Field(() => String)
+  shopId!: string;
+
+  @Field(() => String)
   shopName!: string;
 
   @Field(() => String, { nullable: true })

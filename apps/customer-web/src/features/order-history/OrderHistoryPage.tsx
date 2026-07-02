@@ -1,5 +1,6 @@
 import { useQuery } from '@apollo/client/react'
-import { ArrowLeft, ClipboardList, RefreshCw, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, ClipboardList, RefreshCw } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/button'
 import {
@@ -10,21 +11,44 @@ import {
   EmptyTitle,
 } from '../../components/ui/empty'
 import { GET_ORDERS_QUERY, type CustomerOrdersData } from '../../graphql/getOrders'
-import { readCustomerOrderIds } from '../customer-ordering/customer-ordering.utils'
+import { CustomerAccountDialog } from '../customer-ordering/components/CustomerAccountDialog'
 import { formatBirr } from '../customer-ordering/customer-ordering.utils'
+import { useCustomerAccount } from '../customer-ordering/hooks/useCustomerAccount'
 
 export function OrderHistoryPage() {
   const navigate = useNavigate()
-  const orderIds = readCustomerOrderIds()
+  const account = useCustomerAccount()
+  const [accountDialogOpen, setAccountDialogOpen] = useState(false)
   const { data, error, loading, refetch } = useQuery<CustomerOrdersData>(
     GET_ORDERS_QUERY,
     {
-      variables: { ids: orderIds },
-      skip: orderIds.length === 0,
+      skip: !account.isSignedIn,
       fetchPolicy: 'cache-and-network',
     },
   )
-  const orders = data?.getOrders ?? []
+  const orders = data?.customerOrders ?? []
+  const rememberedOrderIds = useMemo(() => orders.map((order) => order.id), [orders])
+
+  useEffect(() => {
+    if (account.meLoading) return
+    setAccountDialogOpen(!account.isSignedIn)
+  }, [account.isSignedIn, account.meLoading])
+
+  function requestRefresh() {
+    if (!account.isSignedIn) {
+      setAccountDialogOpen(true)
+      return
+    }
+    void refetch()
+  }
+
+  function openOrder(orderId: string) {
+    if (!account.isSignedIn) {
+      setAccountDialogOpen(true)
+      return
+    }
+    navigate(`/orders/${orderId}`)
+  }
 
   return (
     <main className="min-h-svh bg-background text-foreground">
@@ -43,14 +67,14 @@ export function OrderHistoryPage() {
               Orders
             </h1>
             <p className="mt-0.5 text-xs font-medium text-muted-foreground">
-              Recent orders on this device
+              Recent orders for your account
             </p>
           </div>
           <button
             type="button"
             className="grid size-10 place-items-center rounded-full bg-card text-card-foreground ring-1 ring-border transition active:scale-95 disabled:opacity-50"
-            disabled={loading || orderIds.length === 0}
-            onClick={() => void refetch()}
+            disabled={loading || account.meLoading}
+            onClick={requestRefresh}
             aria-label="Refresh orders"
           >
             <RefreshCw className={`size-4 ${loading ? 'animate-spin' : ''}`} />
@@ -64,23 +88,23 @@ export function OrderHistoryPage() {
             </section>
           ) : null}
 
-          {orderIds.length === 0 ? (
+          {!account.isSignedIn ? (
             <Empty className="mt-10 min-h-[360px] rounded-2xl border-0 bg-card/70">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
                   <ClipboardList />
                 </EmptyMedia>
-                <EmptyTitle>No orders yet</EmptyTitle>
+                <EmptyTitle>Sign in to view orders</EmptyTitle>
                 <EmptyDescription>
-                  Place an order and it will appear here.
+                  Your order history is linked to your customer account.
                 </EmptyDescription>
               </EmptyHeader>
               <Button
                 type="button"
                 className="rounded-full"
-                onClick={() => navigate('/', { replace: true })}
+                onClick={() => setAccountDialogOpen(true)}
               >
-                Browse menu
+                Sign in
               </Button>
             </Empty>
           ) : loading && orders.length === 0 ? (
@@ -96,13 +120,20 @@ export function OrderHistoryPage() {
             <Empty className="mt-10 min-h-[360px] rounded-2xl border-0 bg-card/70">
               <EmptyHeader>
                 <EmptyMedia variant="icon">
-                  <ShoppingBag />
+                  <ClipboardList />
                 </EmptyMedia>
-                <EmptyTitle>No saved orders found</EmptyTitle>
+                <EmptyTitle>No orders yet</EmptyTitle>
                 <EmptyDescription>
-                  Your local order references may have expired.
+                  Place an order while signed in and it will appear here.
                 </EmptyDescription>
               </EmptyHeader>
+              <Button
+                type="button"
+                className="rounded-full"
+                onClick={() => navigate('/', { replace: true })}
+              >
+                Browse menu
+              </Button>
             </Empty>
           ) : (
             <div className="space-y-3 pt-2">
@@ -111,7 +142,7 @@ export function OrderHistoryPage() {
                   key={order.id}
                   type="button"
                   className="w-full rounded-2xl bg-card p-4 text-left text-card-foreground shadow-[0_8px_22px_rgba(20,20,20,0.04)] transition active:scale-[0.99]"
-                  onClick={() => navigate(`/orders/${order.id}`)}
+                  onClick={() => openOrder(order.id)}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
@@ -140,11 +171,19 @@ export function OrderHistoryPage() {
           )}
         </div>
       </section>
+      <CustomerAccountDialog
+        account={account}
+        rememberedOrderIds={rememberedOrderIds}
+        open={accountDialogOpen}
+        onOpenChange={setAccountDialogOpen}
+        themePreset="ejoy-default"
+        themeVars={{}}
+      />
     </main>
   )
 }
 
-function summarizeItems(orderItems: CustomerOrdersData['getOrders'][number]['items']) {
+function summarizeItems(orderItems: CustomerOrdersData['customerOrders'][number]['items']) {
   const names = orderItems.map((item) => item.product.name).filter(Boolean)
   if (names.length === 0) return 'Order'
   if (names.length === 1) return names[0]
